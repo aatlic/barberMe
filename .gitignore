@@ -3,6 +3,11 @@
 bin/
 obj/
 
+*.user
+*.suo
+*.db
+*.sqlite
+*.sqlite-journal
 # Rider
 .idea/
 
