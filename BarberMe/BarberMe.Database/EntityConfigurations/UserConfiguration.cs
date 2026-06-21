@@ -1,4 +1,5 @@
 ﻿using BarberMe.Database.Models;
+using BarberMe.Model.Enum;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -42,7 +43,7 @@ namespace BarberMe.Database.EntityConfigurations
 
                     PasswordHash = "$2a$11$3imUFH1O5lE9g7XuS3hZOOUVPwdRz4yQjbw/4pyzVIeXf/ZHTbBUu",
 
-                    RoleId = 1,
+                    RoleId = (int)RoleType.Admin,
 
                     BarberLevelId = null,
 
@@ -67,7 +68,7 @@ namespace BarberMe.Database.EntityConfigurations
 
                     PasswordHash = "$2a$11$3imUFH1O5lE9g7XuS3hZOOUVPwdRz4yQjbw/4pyzVIeXf/ZHTbBUu",
 
-                    RoleId = 2,
+                    RoleId = (int)RoleType.Barber,
                     BarberLevelId = 2, 
 
                     FailedLoginAttempts = 0,
@@ -91,7 +92,7 @@ namespace BarberMe.Database.EntityConfigurations
 
                     PasswordHash = "$2a$11$3imUFH1O5lE9g7XuS3hZOOUVPwdRz4yQjbw/4pyzVIeXf/ZHTbBUu",
 
-                    RoleId = 3,
+                    RoleId = (int)RoleType.Client,
                     BarberLevelId = null,
 
                     FailedLoginAttempts = 0,

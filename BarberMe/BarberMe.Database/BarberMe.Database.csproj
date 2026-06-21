@@ -16,4 +16,8 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\BarberMe.Model\BarberMe.Model.csproj" />
+  </ItemGroup>
+
 </Project>
