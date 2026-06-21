@@ -6,10 +6,11 @@
 
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
-        public string? Image { get; set; }
+        public string? ImageUrl { get; set; }
 
         public decimal DefaultPrice { get; set; }
         public int DefaultDurationMinutes { get; set; }
+
 
         public bool IsActive { get; set; } = true;
 

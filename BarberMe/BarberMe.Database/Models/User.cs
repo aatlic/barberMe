@@ -11,7 +11,7 @@
         public string PhoneNumber { get; set; } = string.Empty;
 
         public string PasswordHash { get; set; } = string.Empty;
-        public string? ProfileImage { get; set; }
+        public string? ProfileImagePath { get; set; }
 
         public int RoleId { get; set; }
         public Role Role { get; set; } = null!;
@@ -27,6 +27,7 @@
         public bool RequirePasswordChange { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
 
         public ICollection<BarberService> BarberServices { get; set; } = new List<BarberService>();
         public ICollection<WorkingHours> WorkingHours { get; set; } = new List<WorkingHours>();
