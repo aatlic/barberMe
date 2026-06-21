@@ -1,8 +1,14 @@
 # Visual Studio
 .vs/
+BarberMe/.vs/
 bin/
 obj/
 
+*.user
+*.suo
+*.db
+*.sqlite
+*.sqlite-journal
 # Rider
 .idea/
 
