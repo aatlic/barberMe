@@ -1,0 +1,162 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Projects\\BarberMe\\BarberMe\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{59299F27-7944-4AD2-A64A-04E6DE7C75D7}|BarberMe.Model.SearchObjects\\BarberMe.Model.SearchObjects.csproj|c:\\projects\\barberme\\barberme\\barberme.model.searchobjects\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{59299F27-7944-4AD2-A64A-04E6DE7C75D7}|BarberMe.Model.SearchObjects\\BarberMe.Model.SearchObjects.csproj|solutionrelative:barberme.model.searchobjects\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{29302461-CE58-42ED-970F-1D53566F0A9A}|BarberMe.Services\\BarberMe.Services.csproj|c:\\projects\\barberme\\barberme\\barberme.services\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{29302461-CE58-42ED-970F-1D53566F0A9A}|BarberMe.Services\\BarberMe.Services.csproj|solutionrelative:barberme.services\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B4FAC0E5-E031-41A9-A493-35A091DC34DA}|BarberMe.Database\\BarberMe.Database.csproj|c:\\projects\\barberme\\barberme\\barberme.database\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B4FAC0E5-E031-41A9-A493-35A091DC34DA}|BarberMe.Database\\BarberMe.Database.csproj|solutionrelative:barberme.database\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{279AA786-8AD3-4EE5-9083-80C1FB59E1A9}|BarberMe.Model.Responses\\BarberMe.Model.Responses.csproj|c:\\projects\\barberme\\barberme\\barberme.model.responses\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{279AA786-8AD3-4EE5-9083-80C1FB59E1A9}|BarberMe.Model.Responses\\BarberMe.Model.Responses.csproj|solutionrelative:barberme.model.responses\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B8976221-D18F-4503-A0F7-FDA830F45280}|BarberMe.Model.Requests\\BarberMe.Model.Requests.csproj|c:\\projects\\barberme\\barberme\\barberme.model.requests\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B8976221-D18F-4503-A0F7-FDA830F45280}|BarberMe.Model.Requests\\BarberMe.Model.Requests.csproj|solutionrelative:barberme.model.requests\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{003DF9BC-50B1-4B46-BA31-29DA56E8D67F}|BarberMe.Model\\BarberMe.Model.csproj|c:\\projects\\barberme\\barberme\\barberme.model\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{003DF9BC-50B1-4B46-BA31-29DA56E8D67F}|BarberMe.Model\\BarberMe.Model.csproj|solutionrelative:barberme.model\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 10,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:6:0:{e8034f19-ab72-4f06-83fd-f6832b41aa63}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:1:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{b1e99781-ab81-11d0-b683-00aa00a3ee26}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{eefa5220-e298-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c64b9c2-e352-428e-a56d-0ace190b99a6}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "C:\\Projects\\BarberMe\\BarberMe\\BarberMe.Model.SearchObjects\\Class1.cs",
+              "RelativeDocumentMoniker": "BarberMe.Model.SearchObjects\\Class1.cs",
+              "ToolTip": "C:\\Projects\\BarberMe\\BarberMe\\BarberMe.Model.SearchObjects\\Class1.cs",
+              "RelativeToolTip": "BarberMe.Model.SearchObjects\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-19T19:10:21.169Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "C:\\Projects\\BarberMe\\BarberMe\\BarberMe.Services\\Class1.cs",
+              "RelativeDocumentMoniker": "BarberMe.Services\\Class1.cs",
+              "ToolTip": "C:\\Projects\\BarberMe\\BarberMe\\BarberMe.Services\\Class1.cs",
+              "RelativeToolTip": "BarberMe.Services\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-19T18:55:00.653Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "C:\\Projects\\BarberMe\\BarberMe\\BarberMe.Database\\Class1.cs",
+              "RelativeDocumentMoniker": "BarberMe.Database\\Class1.cs",
+              "ToolTip": "C:\\Projects\\BarberMe\\BarberMe\\BarberMe.Database\\Class1.cs",
+              "RelativeToolTip": "BarberMe.Database\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-19T18:54:34.988Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "C:\\Projects\\BarberMe\\BarberMe\\BarberMe.Model.Responses\\Class1.cs",
+              "RelativeDocumentMoniker": "BarberMe.Model.Responses\\Class1.cs",
+              "ToolTip": "C:\\Projects\\BarberMe\\BarberMe\\BarberMe.Model.Responses\\Class1.cs",
+              "RelativeToolTip": "BarberMe.Model.Responses\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-19T18:54:10.928Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "C:\\Projects\\BarberMe\\BarberMe\\BarberMe.Model.Requests\\Class1.cs",
+              "RelativeDocumentMoniker": "BarberMe.Model.Requests\\Class1.cs",
+              "ToolTip": "C:\\Projects\\BarberMe\\BarberMe\\BarberMe.Model.Requests\\Class1.cs",
+              "RelativeToolTip": "BarberMe.Model.Requests\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-19T18:53:21.79Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "C:\\Projects\\BarberMe\\BarberMe\\BarberMe.Model\\Class1.cs",
+              "RelativeDocumentMoniker": "BarberMe.Model\\Class1.cs",
+              "ToolTip": "C:\\Projects\\BarberMe\\BarberMe\\BarberMe.Model\\Class1.cs",
+              "RelativeToolTip": "BarberMe.Model\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-19T18:52:24.096Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
