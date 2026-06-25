@@ -12,4 +12,12 @@
     <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\BarberMe.Database\BarberMe.Database.csproj" />
+    <ProjectReference Include="..\BarberMe.Model.SearchObjects\BarberMe.Model.SearchObjects.csproj" />
+    <ProjectReference Include="..\BarberMe.Model.Responses\BarberMe.Model.Responses.csproj" />
+    <ProjectReference Include="..\BarberMe.Model.Requests\BarberMe.Model.Requests.csproj" />
+    <ProjectReference Include="..\BarberMe.Model\BarberMe.Model.csproj" />
+  </ItemGroup>
+
 </Project>
