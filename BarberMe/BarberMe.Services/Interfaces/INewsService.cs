@@ -1,5 +1,4 @@
-﻿using BarberMe.API.Interfaces;
-using BarberMe.Model.Requests.Notification;
+﻿using BarberMe.Model.Requests.Notification;
 using BarberMe.Model.Responses.Notification;
 using BarberMe.Model.SearchObjects;
 

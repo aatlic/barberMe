@@ -1,5 +1,4 @@
-﻿using BarberMe.API.Interfaces;
-using BarberMe.Model.Requests.Service;
+﻿using BarberMe.Model.Requests.Service;
 using BarberMe.Model.Responses.Service;
 using BarberMe.Model.SearchObjects;
 

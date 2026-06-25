@@ -1,5 +1,4 @@
-﻿using BarberMe.API.Interfaces;
-using BarberMe.Model.Requests.Appointment;
+﻿using BarberMe.Model.Requests.Appointment;
 using BarberMe.Model.Responses.Appointment;
 using BarberMe.Model.SearchObjects;
 

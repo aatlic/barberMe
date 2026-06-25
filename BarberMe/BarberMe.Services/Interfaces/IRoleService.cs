@@ -1,5 +1,4 @@
-﻿using BarberMe.API.Interfaces;
-using BarberMe.Model.Responses.User;
+﻿using BarberMe.Model.Responses.User;
 using BarberMe.Model.SearchObjects;
 
 namespace BarberMe.Services.Interfaces

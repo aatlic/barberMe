@@ -1,5 +1,4 @@
-﻿using BarberMe.Model.Requests;
-using BarberMe.Model.Responses.Recommendation;
+﻿using BarberMe.Model.Responses.Recommendation;
 
 namespace BarberMe.Services.Interfaces
 {
@@ -7,6 +6,9 @@ namespace BarberMe.Services.Interfaces
     {
         Task<List<RecommendationResponse>> GetRecommendations(int userId);
 
-        Task AddFeedback(int recommendationId, bool isHelpful);
+        Task AddFeedback(
+            int recommendationId,
+            int rating,
+            string? comment);
     }
 }

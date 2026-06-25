@@ -1,4 +1,4 @@
-﻿namespace BarberMe.API.Interfaces
+﻿namespace BarberMe.Services.Interfaces
 {
     public interface ICRUDService<TResponse, TSearch, TInsert, TUpdate>
         : IService<TResponse, TSearch>

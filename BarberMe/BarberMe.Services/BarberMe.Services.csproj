@@ -20,4 +20,8 @@
     <ProjectReference Include="..\BarberMe.Model\BarberMe.Model.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Service\" />
+  </ItemGroup>
+
 </Project>

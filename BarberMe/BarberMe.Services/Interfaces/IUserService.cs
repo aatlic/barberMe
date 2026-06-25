@@ -1,5 +1,4 @@
-﻿using BarberMe.API.Interfaces;
-using BarberMe.Model.Requests.Auth;
+﻿using BarberMe.Model.Requests.Auth;
 using BarberMe.Model.Requests.User;
 using BarberMe.Model.Responses.Auth;
 using BarberMe.Model.Responses.User;

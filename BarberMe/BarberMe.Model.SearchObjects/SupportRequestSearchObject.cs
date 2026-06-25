@@ -1,7 +1,9 @@
-﻿namespace BarberMe.Model.SearchObjects
+﻿using BarberMe.Model.Enum;
+
+namespace BarberMe.Model.SearchObjects
 {
     public class SupportRequestSearchObject : BaseSearchObject
     {
-        public bool? IsResolved { get; set; }
+        public SupportRequestStatus? Status { get; set; }
     }
 }
