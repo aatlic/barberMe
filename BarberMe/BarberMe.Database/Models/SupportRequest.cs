@@ -1,4 +1,6 @@
-﻿namespace BarberMe.Database.Models
+﻿using BarberMe.Model.Enum;
+
+namespace BarberMe.Database.Models
 {
     public class SupportRequest
     {
@@ -13,7 +15,7 @@
         public string Subject { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;
 
-        public string Status { get; set; } = "Open";
+        public SupportRequestStatus Status { get; set; } = SupportRequestStatus.Open;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

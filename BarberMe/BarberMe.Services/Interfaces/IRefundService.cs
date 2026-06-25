@@ -5,6 +5,6 @@ namespace BarberMe.Services.Interfaces
 {
     public interface IRefundService
     {
-        Task<RefundResponse> Insert(RefundInsertRequest request);
+        Task<RefundResponse> InsertAsync(RefundInsertRequest request);
     }
 }

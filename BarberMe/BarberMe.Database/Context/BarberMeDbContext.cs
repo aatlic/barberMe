@@ -20,6 +20,7 @@ namespace BarberMe.Database.Context
         public DbSet<AppointmentStatus> AppointmentStatuses { get; set; }
         public DbSet<Review> Reviews { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<Refund> Refunds { get; set; }
         public DbSet<PaymentStatus> PaymentStatuses { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<NotificationType> NotificationTypes { get; set; }

@@ -1,16 +1,15 @@
-﻿using BarberMe.API.Interfaces;
-using BarberMe.Model.Requests.Notification;
+﻿using BarberMe.Model.Requests.Notification;
 using BarberMe.Model.Responses.Notification;
 using BarberMe.Model.SearchObjects;
 
 namespace BarberMe.Services.Interfaces
 {
-    public interface INotificationStatus :
+    public interface INotificationService :
                     IService<
                     NotificationResponse,
                     NotificationSearchObject>
     {
-        Task<NotificationResponse> Insert(NotificationInsertRequest request);
+        Task<NotificationResponse> InsertAsync(NotificationInsertRequest request);
 
         Task MarkAsRead(int id);
 

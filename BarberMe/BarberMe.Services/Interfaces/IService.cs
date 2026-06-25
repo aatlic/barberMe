@@ -1,6 +1,6 @@
 ﻿using BarberMe.Model.Responses;
 
-namespace BarberMe.API.Interfaces
+namespace BarberMe.Services.Interfaces
 {
     public interface IService<TResponse, TSearch>
     {

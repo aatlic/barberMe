@@ -1,5 +1,4 @@
-﻿using BarberMe.API.Interfaces;
-using BarberMe.Model.Requests.Support;
+﻿using BarberMe.Model.Requests.Support;
 using BarberMe.Model.Responses.Support;
 using BarberMe.Model.SearchObjects;
 
@@ -10,8 +9,8 @@ namespace BarberMe.Services.Interfaces
                     SupportRequestResponse,
                     SupportRequestSearchObject>
     {
-        Task<SupportRequestResponse> Insert(SupportRequestInsertRequest request);
+        Task<SupportRequestResponse> InsertAsync(SupportRequestInsertRequest request);
 
-        Task Resolve(int id);
+        Task ResolveAsync(int id);
     }
 }
