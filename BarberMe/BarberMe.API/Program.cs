@@ -1,6 +1,5 @@
 using BarberMe.API.Mapping;
 using BarberMe.Database.Context;
-using BarberMe.Database.Models;
 using BarberMe.Services.Interfaces;
 using BarberMe.Services.Services;
 using Microsoft.EntityFrameworkCore;
