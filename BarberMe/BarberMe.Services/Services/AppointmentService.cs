@@ -90,7 +90,18 @@ namespace BarberMe.Services.Services
 
         public async Task<AppointmentResponse> InsertAsync(AppointmentInsertRequest request)
         {
+            var barberService = await _context.BarberServices
+                .FirstOrDefaultAsync(x => x.BarberServiceId == request.BarberServiceId);
+
+            if (barberService == null)
+                throw new KeyNotFoundException("Barber service does not exist.");
+
             var entity = _mapper.Map<Appointment>(request);
+
+            entity.BarberId = barberService.BarberId;
+            entity.EndDateTime = request.StartDateTime.AddMinutes(barberService.DurationMinutes);
+            entity.AppointmentStatusId = (int)Model.Enum.AppointmentStatusType.Pending;
+            entity.IsPaid = false;
 
             _context.Appointments.Add(entity);
             await _context.SaveChangesAsync();
