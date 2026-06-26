@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using BarberMe.Database.Context;
 using BarberMe.Database.Models;
+using BarberMe.Model.Requests.RecommendationFeedbacl;
 using BarberMe.Model.Responses.Recommendation;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -33,15 +34,11 @@ namespace BarberMe.Services.Services
 
         public async Task AddFeedback(
             int recommendationId,
-            int rating,
-            string? comment)
+            RecommendationFeedbackInsertRequest request)
         {
-            var entity = new RecommendationFeedback
-            {
-                RecommendationId = recommendationId,
-                Rating = rating,
-                Comment = comment
-            };
+            var entity = _mapper.Map<RecommendationFeedback>(request);
+
+            entity.RecommendationId = recommendationId;
 
             _context.RecommendationFeedbacks.Add(entity);
 
