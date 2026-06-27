@@ -7,6 +7,7 @@
         public string Content { get; set; } = null!;
 
         public string? Image { get; set; }
+        public bool IsActive { get; set; }
 
         public DateTime CreatedAt { get; set; }
     }

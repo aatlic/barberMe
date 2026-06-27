@@ -7,6 +7,7 @@ using BarberMe.Model.Responses.Service;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using BarberMe.Model.Exceptions;
 
 namespace BarberMe.Services.Services
 {
@@ -31,12 +32,6 @@ namespace BarberMe.Services.Services
                     x.Name.Contains(search.FTS));
             }
 
-            if (search.IsActive.HasValue)
-            {
-                query = query.Where(x =>
-                    x.IsActive == search.IsActive.Value);
-            }
-
             var totalCount = await query.CountAsync();
 
             var page = search.Page ?? 1;
@@ -46,6 +41,15 @@ namespace BarberMe.Services.Services
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
+
+            if (page < 1)
+                page = 1;
+
+            if (pageSize < 1)
+                pageSize = 10;
+
+            if (pageSize > 100)
+                pageSize = 100;
 
             return new PagedResponse<ServiceResponse>
             {
@@ -60,12 +64,35 @@ namespace BarberMe.Services.Services
         {
             var entity = await _context.Services.FindAsync(id);
 
-            return entity == null ? null : _mapper.Map<ServiceResponse>(entity);
+            if (entity == null)
+                throw new NotFoundException("Service does not exist.");
+
+            return _mapper.Map<ServiceResponse>(entity);
         }
 
         public async Task<ServiceResponse> InsertAsync(ServiceInsertRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.Name))
+                throw new BusinessException("Service name is required.");
+
+            if (request.DefaultPrice <= 0)
+                throw new BusinessException("Service price must be greater than zero.");
+
+            if (request.DefaultDurationMinutes <= 0)
+                throw new BusinessException("Service duration must be greater than zero.");
+
+            if (request.DefaultDurationMinutes > 480)
+                throw new BusinessException("Service duration cannot exceed 480 minutes.");
+
+            var exists = await _context.Services
+                .AnyAsync(x => x.Name == request.Name);
+
+            if (exists)
+                throw new BusinessException("Service with this name already exists.");
+
             var entity = _mapper.Map<Service>(request);
+
+            entity.IsActive = true;
 
             _context.Services.Add(entity);
             await _context.SaveChangesAsync();
@@ -75,10 +102,28 @@ namespace BarberMe.Services.Services
 
         public async Task<ServiceResponse?> UpdateAsync(int id, ServiceUpdateRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.Name))
+                throw new BusinessException("Service name is required.");
+
+            if (request.DefaultPrice <= 0)
+                throw new BusinessException("Service price must be greater than zero.");
+
+            if (request.DefaultDurationMinutes <= 0)
+                throw new BusinessException("Service duration must be greater than zero.");
+
+            if (request.DefaultDurationMinutes > 480)
+                throw new BusinessException("Service duration cannot exceed 480 minutes.");
+
             var entity = await _context.Services.FindAsync(id);
 
             if (entity == null)
-                return null;
+                throw new NotFoundException("Service does not exist.");
+
+            var exists = await _context.Services
+                .AnyAsync(x => x.Name == request.Name && x.ServiceId != id);
+
+            if (exists)
+                throw new BusinessException("Service with this name already exists.");
 
             _mapper.Map(request, entity);
 
@@ -92,9 +137,13 @@ namespace BarberMe.Services.Services
             var entity = await _context.Services.FindAsync(id);
 
             if (entity == null)
-                return false;
+                throw new NotFoundException("Service does not exist.");
 
-            _context.Services.Remove(entity);
+            if (!entity.IsActive)
+                throw new BusinessException("Service is already inactive.");
+
+            entity.IsActive = false;
+
             await _context.SaveChangesAsync();
 
             return true;

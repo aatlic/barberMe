@@ -7,6 +7,7 @@ using BarberMe.Model.Responses.Appointment;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using BarberMe.Model.Exceptions;
 
 namespace BarberMe.Services.Services
 {
@@ -43,6 +44,15 @@ namespace BarberMe.Services.Services
             var page = search.Page ?? 1;
             var pageSize = search.PageSize ?? 10;
 
+            if (page < 1)
+                page = 1;
+
+            if (pageSize < 1)
+                pageSize = 10;
+
+            if (pageSize > 100)
+                pageSize = 100;
+
             var list = await query
                 .OrderByDescending(x => x.CreatedAt)
                 .Skip((page - 1) * pageSize)
@@ -66,12 +76,39 @@ namespace BarberMe.Services.Services
                 .Include(x => x.Appointment)
                 .FirstOrDefaultAsync(x => x.ReviewId == id);
 
-            return entity == null ? null : _mapper.Map<ReviewResponse>(entity);
+            if (entity == null)
+                throw new NotFoundException("Review does not exist.");
+
+            return _mapper.Map<ReviewResponse>(entity);
         }
 
         public async Task<ReviewResponse> InsertAsync(ReviewInsertRequest request)
         {
+            if (request.AppointmentId <= 0)
+                throw new BusinessException("Appointment is required.");
+
+            if (request.Rating < 1 || request.Rating > 5)
+                throw new BusinessException("Rating must be between 1 and 5.");
+
+            var appointment = await _context.Appointments
+                .FirstOrDefaultAsync(x => x.AppointmentId == request.AppointmentId);
+
+            if (appointment == null)
+                throw new NotFoundException("Appointment does not exist.");
+
+            if (appointment.CompletedAt == null)
+                throw new BusinessException("You can review only completed appointments.");
+
+            var reviewExists = await _context.Reviews
+                .AnyAsync(x => x.AppointmentId == request.AppointmentId);
+
+            if (reviewExists)
+                throw new BusinessException("Review already exists for this appointment.");
+
             var entity = _mapper.Map<Review>(request);
+
+            entity.ClientId = appointment.ClientId;
+            entity.BarberId = appointment.BarberId;
 
             _context.Reviews.Add(entity);
             await _context.SaveChangesAsync();

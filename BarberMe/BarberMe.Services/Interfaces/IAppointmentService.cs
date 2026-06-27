@@ -5,18 +5,18 @@ using BarberMe.Model.SearchObjects;
 namespace BarberMe.Services.Interfaces
 {
     public interface IAppointmentService :
-                    ICRUDService<
+                    IService<
                     AppointmentResponse,
-                    AppointmentSearchObject,
-                    AppointmentInsertRequest,
-                    AppointmentUpdateRequest>
+                    AppointmentSearchObject>
     {
         Task<List<AvailableSlotResponse>> GetAvailableSlots(
                                             int barberId,
                                             int serviceId,
                                             DateOnly date);
+        Task<AppointmentResponse> InsertAsync(AppointmentInsertRequest request);
+        Task<AppointmentResponse?> UpdateAsync(int id);
 
-        Task CancelAppointment(int id);
+        Task CancelAppointment(int id, AppointmentUpdateRequest request);
 
         Task ConfirmAppointment(int id);
     }
