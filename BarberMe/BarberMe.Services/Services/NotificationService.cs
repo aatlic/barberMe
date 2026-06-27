@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using BarberMe.Database.Context;
 using BarberMe.Database.Models;
+using BarberMe.Model.Exceptions;
 using BarberMe.Model.Requests.Notification;
 using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.Notification;
@@ -39,6 +40,15 @@ namespace BarberMe.Services.Services
             var page = search.Page ?? 1;
             var pageSize = search.PageSize ?? 10;
 
+            if (page < 1)
+                page = 1;
+
+            if (pageSize < 1)
+                pageSize = 10;
+
+            if (pageSize > 100)
+                pageSize = 100;
+
             var list = await query
                 .OrderByDescending(x => x.CreatedAt)
                 .Skip((page - 1) * pageSize)
@@ -61,11 +71,38 @@ namespace BarberMe.Services.Services
                 .Include(x => x.NotificationType)
                 .FirstOrDefaultAsync(x => x.NotificationId == id);
 
-            return entity == null ? null : _mapper.Map<NotificationResponse>(entity);
+            if (entity == null)
+                throw new NotFoundException("Notification does not exist.");
+
+            return _mapper.Map<NotificationResponse>(entity);
         }
 
         public async Task<NotificationResponse> InsertAsync(NotificationInsertRequest request)
         {
+            if (request.UserId <= 0)
+                throw new BusinessException("User is required.");
+
+            if (request.NotificationTypeId <= 0)
+                throw new BusinessException("Notification type is required.");
+
+            if (string.IsNullOrWhiteSpace(request.Title))
+                throw new BusinessException("Notification title is required.");
+
+            if (string.IsNullOrWhiteSpace(request.Text))
+                throw new BusinessException("Notification message is required.");
+
+            var userExists = await _context.Users
+                .AnyAsync(x => x.UserId == request.UserId && x.IsActive);
+
+            if (!userExists)
+                throw new NotFoundException("User does not exist.");
+
+            var typeExists = await _context.NotificationTypes
+                .AnyAsync(x => x.NotificationTypeId == request.NotificationTypeId);
+
+            if (!typeExists)
+                throw new NotFoundException("Notification type does not exist.");
+
             var entity = _mapper.Map<Notification>(request);
 
             _context.Notifications.Add(entity);
@@ -80,7 +117,10 @@ namespace BarberMe.Services.Services
                 .FirstOrDefaultAsync(x => x.NotificationId == id);
 
             if (entity == null)
-                return;
+                throw new NotFoundException("Notification does not exist.");
+
+            if (entity.IsRead)
+                throw new BusinessException("Notification is already marked as read.");
 
             entity.IsRead = true;
 
@@ -89,6 +129,12 @@ namespace BarberMe.Services.Services
 
         public async Task<int> GetUnreadCount(int userId)
         {
+            var userExists = await _context.Users
+                .AnyAsync(x => x.UserId == userId && x.IsActive);
+
+            if (!userExists)
+                throw new NotFoundException("User does not exist.");
+
             return await _context.Notifications
                 .CountAsync(x => x.UserId == userId && !x.IsRead);
         }

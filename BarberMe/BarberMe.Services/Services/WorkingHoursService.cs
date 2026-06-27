@@ -7,6 +7,7 @@ using BarberMe.Model.Responses.Service;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using BarberMe.Model.Exceptions;
 
 namespace BarberMe.Services.Services
 {
@@ -38,6 +39,15 @@ namespace BarberMe.Services.Services
             var page = search.Page ?? 1;
             var pageSize = search.PageSize ?? 10;
 
+            if (page < 1)
+                page = 1;
+
+            if (pageSize < 1)
+                pageSize = 10;
+
+            if (pageSize > 100)
+                pageSize = 100;
+
             var list = await query
                 .OrderBy(x => x.DayOfWeek)
                 .ThenBy(x => x.StartTime)
@@ -60,11 +70,36 @@ namespace BarberMe.Services.Services
                 .Include(x => x.Barber)
                 .FirstOrDefaultAsync(x => x.WorkingHoursId == id);
 
-            return entity == null ? null : _mapper.Map<WorkingHoursResponse>(entity);
+            if (entity == null)
+                throw new NotFoundException("Working hours do not exist.");
+
+            return _mapper.Map<WorkingHoursResponse>(entity);
         }
 
         public async Task<WorkingHoursResponse> InsertAsync(WorkingHoursInsertRequest request)
         {
+            if (request.BarberId <= 0)
+                throw new BusinessException("Barber is required.");
+
+            if (request.DayOfWeek < 0 || request.DayOfWeek > 6)
+                throw new BusinessException("Day of week must be between 0 and 6.");
+
+            if (request.StartTime >= request.EndTime)
+                throw new BusinessException("Start time must be before end time.");
+
+            var barberExists = await _context.Users
+                .AnyAsync(x => x.UserId == request.BarberId && x.IsActive);
+
+            if (!barberExists)
+                throw new NotFoundException("Barber does not exist.");
+
+            var alreadyExists = await _context.WorkingHours
+                .AnyAsync(x => x.BarberId == request.BarberId &&
+                               x.DayOfWeek == request.DayOfWeek);
+
+            if (alreadyExists)
+                throw new BusinessException("Working hours already exist for this barber and day.");
+
             var entity = _mapper.Map<WorkingHours>(request);
 
             _context.WorkingHours.Add(entity);
@@ -79,9 +114,13 @@ namespace BarberMe.Services.Services
                 .FirstOrDefaultAsync(x => x.WorkingHoursId == id);
 
             if (entity == null)
-                return null;
+                throw new NotFoundException("Working hours do not exist.");
+
+            if (request.StartTime >= request.EndTime)
+                throw new BusinessException("Start time must be before end time.");
 
             _mapper.Map(request, entity);
+
             await _context.SaveChangesAsync();
 
             return _mapper.Map<WorkingHoursResponse>(entity);
@@ -93,7 +132,7 @@ namespace BarberMe.Services.Services
                 .FirstOrDefaultAsync(x => x.WorkingHoursId == id);
 
             if (entity == null)
-                return false;
+                throw new NotFoundException("Working hours do not exist.");
 
             _context.WorkingHours.Remove(entity);
             await _context.SaveChangesAsync();
@@ -103,6 +142,15 @@ namespace BarberMe.Services.Services
 
         public async Task<List<WorkingHoursResponse>> GetByBarberAsync(int barberId)
         {
+            if (barberId <= 0)
+                throw new BusinessException("Barber is required.");
+
+            var barberExists = await _context.Users
+                .AnyAsync(x => x.UserId == barberId && x.IsActive);
+
+            if (!barberExists)
+                throw new NotFoundException("Barber does not exist.");
+
             var list = await _context.WorkingHours
                 .Where(x => x.BarberId == barberId)
                 .OrderBy(x => x.DayOfWeek)

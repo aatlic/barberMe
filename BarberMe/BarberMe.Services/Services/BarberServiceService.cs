@@ -7,6 +7,7 @@ using BarberMe.Model.Responses.Service;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using BarberMe.Model.Exceptions;
 
 namespace BarberMe.Services.Services
 {
@@ -42,6 +43,15 @@ namespace BarberMe.Services.Services
             var page = search.Page ?? 1;
             var pageSize = search.PageSize ?? 10;
 
+            if (page < 1)
+                page = 1;
+
+            if (pageSize < 1)
+                pageSize = 10;
+
+            if (pageSize > 100)
+                pageSize = 100;
+
             var list = await query
                 .OrderBy(x => x.BarberId)
                 .Skip((page - 1) * pageSize)
@@ -64,18 +74,50 @@ namespace BarberMe.Services.Services
                 .Include(x => x.Service)
                 .FirstOrDefaultAsync(x => x.BarberServiceId == id);
 
+            if (entity == null)
+                throw new NotFoundException("Barber service does not exist.");
+
             return entity == null
                 ? null
                 : _mapper.Map<BarberServiceResponse>(entity);
         }
 
-        public async Task<BarberServiceResponse> InsertAsync(
-            BarberServiceInsertRequest request)
+        public async Task<BarberServiceResponse> InsertAsync(BarberServiceInsertRequest request)
         {
+            if (request.BarberId <= 0)
+                throw new BusinessException("Barber is required.");
+
+            if (request.ServiceId <= 0)
+                throw new BusinessException("Service is required.");
+
+            if (request.Price <= 0)
+                throw new BusinessException("Price must be greater than zero.");
+
+            if (request.DurationMinutes <= 0)
+                throw new BusinessException("Duration must be greater than zero.");
+
+            var barberExists = await _context.Users
+                .AnyAsync(x => x.UserId == request.BarberId && x.IsActive);
+
+            if (!barberExists)
+                throw new NotFoundException("Barber does not exist.");
+
+            var serviceExists = await _context.Services
+                .AnyAsync(x => x.ServiceId == request.ServiceId && x.IsActive);
+
+            if (!serviceExists)
+                throw new NotFoundException("Service does not exist.");
+
+            var alreadyExists = await _context.BarberServices
+                .AnyAsync(x => x.BarberId == request.BarberId &&
+                               x.ServiceId == request.ServiceId);
+
+            if (alreadyExists)
+                throw new BusinessException("This service is already assigned to the barber.");
+
             var entity = _mapper.Map<BarberService>(request);
 
             _context.BarberServices.Add(entity);
-
             await _context.SaveChangesAsync();
 
             return _mapper.Map<BarberServiceResponse>(entity);
@@ -85,11 +127,17 @@ namespace BarberMe.Services.Services
             int id,
             BarberServiceUpdateRequest request)
         {
+            if (request.Price <= 0)
+                throw new BusinessException("Price must be greater than zero.");
+
+            if (request.DurationMinutes <= 0)
+                throw new BusinessException("Duration must be greater than zero.");
+
             var entity = await _context.BarberServices
                 .FirstOrDefaultAsync(x => x.BarberServiceId == id);
 
             if (entity == null)
-                return null;
+                throw new NotFoundException("Barber service does not exist.");
 
             _mapper.Map(request, entity);
 
@@ -104,7 +152,13 @@ namespace BarberMe.Services.Services
                 .FirstOrDefaultAsync(x => x.BarberServiceId == id);
 
             if (entity == null)
-                return false;
+                throw new NotFoundException("Barber service does not exist.");
+
+            var hasAppointments = await _context.Appointments
+                .AnyAsync(x => x.BarberServiceId == id);
+
+            if (hasAppointments)
+                throw new BusinessException("This barber service cannot be deleted because it is used in appointments.");
 
             _context.BarberServices.Remove(entity);
 

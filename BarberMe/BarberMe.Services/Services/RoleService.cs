@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using BarberMe.Database.Context;
+using BarberMe.Model.Exceptions;
 using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.User;
 using BarberMe.Model.SearchObjects;
@@ -33,6 +34,15 @@ namespace BarberMe.Services.Services
             var page = search.Page ?? 1;
             var pageSize = search.PageSize ?? 10;
 
+            if (page < 1)
+                page = 1;
+
+            if (pageSize < 1)
+                pageSize = 10;
+
+            if (pageSize > 100)
+                pageSize = 100;
+
             var list = await query
                 .OrderBy(x => x.Name)
                 .Skip((page - 1) * pageSize)
@@ -53,7 +63,10 @@ namespace BarberMe.Services.Services
             var entity = await _context.Roles
                 .FirstOrDefaultAsync(x => x.RoleId == id);
 
-            return entity == null ? null : _mapper.Map<RoleResponse>(entity);
+            if (entity == null)
+                throw new NotFoundException("Role does not exist.");
+
+            return _mapper.Map<RoleResponse>(entity);
         }
     }
 }

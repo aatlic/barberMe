@@ -9,6 +9,8 @@ using BarberMe.Model.Responses.User;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using BarberMe.Model.Exceptions;
+
 namespace BarberMe.Services.Services
 {
     public class UserService : IUserService
@@ -122,16 +124,16 @@ namespace BarberMe.Services.Services
                 .FirstOrDefaultAsync(x => x.Username == request.Username);
 
             if (user == null)
-                throw new Exception("Invalid username or password.");
+                throw new BusinessException("Invalid username or password.");
 
             if (!user.IsActive)
-                throw new Exception("User account is inactive.");
+                throw new BusinessException("User account is inactive.");
 
             if (user.IsLocked &&
                 user.LockedUntil.HasValue &&
                 user.LockedUntil > DateTime.UtcNow)
             {
-                throw new Exception("User account is locked.");
+                throw new BusinessException("User account is locked.");
             }
 
             var passwordValid = BCrypt.Net.BCrypt.Verify(
@@ -150,7 +152,7 @@ namespace BarberMe.Services.Services
 
                 await _context.SaveChangesAsync();
 
-                throw new Exception("Invalid username or password.");
+                throw new BusinessException("Invalid username or password.");
             }
 
             user.FailedLoginAttempts = 0;
@@ -174,19 +176,19 @@ namespace BarberMe.Services.Services
                 .AnyAsync(x => x.Username == request.Username);
 
             if (usernameExists)
-                throw new Exception("Username already exists.");
+                throw new BusinessException("Username already exists.");
 
             var emailExists = await _context.Users
                 .AnyAsync(x => x.Email == request.Email);
 
             if (emailExists)
-                throw new Exception("Email already exists.");
+                throw new BusinessException("Email already exists.");
 
             var clientRole = await _context.Roles
                 .FirstOrDefaultAsync(x => x.Name == "Client");
 
             if (clientRole == null)
-                throw new Exception("Client role does not exist.");
+                throw new NotFoundException("Client role does not exist.");
 
             var entity = new User
             {
@@ -214,13 +216,13 @@ namespace BarberMe.Services.Services
         public async Task ForgotPassword(ForgotPasswordRequest request)
         {
             if (request.NewPassword != request.ConfirmPassword)
-                throw new Exception("Passwords do not match.");
+                throw new BusinessException("Passwords do not match.");
 
             var user = await _context.Users
                 .FirstOrDefaultAsync(x => x.Email == request.Email);
 
             if (user == null)
-                throw new Exception("User not found.");
+                throw new NotFoundException("User not found.");
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
 
@@ -230,13 +232,13 @@ namespace BarberMe.Services.Services
         public async Task ChangePassword(int userId, ChangePasswordRequest request)
         {
             if (request.NewPassword != request.ConfirmPassword)
-                throw new Exception("Passwords do not match.");
+                throw new BusinessException("Passwords do not match.");
 
             var user = await _context.Users
                 .FirstOrDefaultAsync(x => x.UserId == userId);
 
             if (user == null)
-                throw new Exception("User does not exist.");
+                throw new NotFoundException("User does not exist.");
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
             user.RequirePasswordChange = false;
@@ -249,7 +251,7 @@ namespace BarberMe.Services.Services
             var user = await _context.Users.FindAsync(userId);
 
             if (user == null)
-                throw new Exception("User not found.");
+                throw new NotFoundException("User not found.");
 
             var folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "profiles");
             Directory.CreateDirectory(folder);

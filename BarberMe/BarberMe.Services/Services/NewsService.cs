@@ -7,6 +7,7 @@ using BarberMe.Model.Responses.Notification;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using BarberMe.Model.Exceptions;
 
 namespace BarberMe.Services.Services
 {
@@ -37,6 +38,15 @@ namespace BarberMe.Services.Services
             var page = search.Page ?? 1;
             var pageSize = search.PageSize ?? 10;
 
+            if (page < 1)
+                page = 1;
+
+            if (pageSize < 1)
+                pageSize = 10;
+
+            if (pageSize > 100)
+                pageSize = 100;
+
             var list = await query
                 .OrderByDescending(x => x.CreatedAt)
                 .Skip((page - 1) * pageSize)
@@ -57,11 +67,20 @@ namespace BarberMe.Services.Services
             var entity = await _context.News
                 .FirstOrDefaultAsync(x => x.NewsId == id);
 
-            return entity == null ? null : _mapper.Map<NewsResponse>(entity);
+            if (entity == null)
+                throw new NotFoundException("News does not exist.");
+
+            return _mapper.Map<NewsResponse>(entity);
         }
 
         public async Task<NewsResponse> InsertAsync(NewsInsertRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.Title))
+                throw new BusinessException("News title is required.");
+
+            if (string.IsNullOrWhiteSpace(request.Content))
+                throw new BusinessException("News content is required.");
+
             var entity = _mapper.Map<News>(request);
 
             _context.News.Add(entity);
@@ -72,11 +91,17 @@ namespace BarberMe.Services.Services
 
         public async Task<NewsResponse?> UpdateAsync(int id, NewsUpdateRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.Title))
+                throw new BusinessException("News title is required.");
+
+            if (string.IsNullOrWhiteSpace(request.Content))
+                throw new BusinessException("News content is required.");
+
             var entity = await _context.News
                 .FirstOrDefaultAsync(x => x.NewsId == id);
 
             if (entity == null)
-                return null;
+                throw new NotFoundException("News does not exist.");
 
             _mapper.Map(request, entity);
             await _context.SaveChangesAsync();
@@ -90,9 +115,13 @@ namespace BarberMe.Services.Services
                 .FirstOrDefaultAsync(x => x.NewsId == id);
 
             if (entity == null)
-                return false;
+                throw new NotFoundException("News does not exist.");
 
-            _context.News.Remove(entity);
+            if (!entity.IsActive)
+                throw new BusinessException("News is already inactive.");
+
+            entity.IsActive = false;
+
             await _context.SaveChangesAsync();
 
             return true;

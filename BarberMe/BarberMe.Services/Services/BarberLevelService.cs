@@ -7,6 +7,7 @@ using BarberMe.Model.Responses.User;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using BarberMe.Model.Exceptions;
 
 namespace BarberMe.Services.Services
 {
@@ -37,6 +38,15 @@ namespace BarberMe.Services.Services
             var page = search.Page ?? 1;
             var pageSize = search.PageSize ?? 10;
 
+            if (page < 1)
+                page = 1;
+
+            if (pageSize < 1)
+                pageSize = 10;
+
+            if (pageSize > 100)
+                pageSize = 100;
+
             var list = await query
                 .OrderBy(x => x.Name)
                 .Skip((page - 1) * pageSize)
@@ -57,17 +67,26 @@ namespace BarberMe.Services.Services
             var entity = await _context.BarberLevels
                 .FirstOrDefaultAsync(x => x.BarberLevelId == id);
 
-            return entity == null
-                ? null
-                : _mapper.Map<BarberLevelResponse>(entity);
+            if (entity == null)
+                throw new NotFoundException("Barber level does not exist.");
+
+            return _mapper.Map<BarberLevelResponse>(entity);
         }
 
         public async Task<BarberLevelResponse> InsertAsync(BarberLevelInsertRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.Name))
+                throw new BusinessException("Barber level name is required.");
+
+            var exists = await _context.BarberLevels
+                .AnyAsync(x => x.Name == request.Name);
+
+            if (exists)
+                throw new BusinessException("Barber level with this name already exists.");
+
             var entity = _mapper.Map<BarberLevel>(request);
 
             _context.BarberLevels.Add(entity);
-
             await _context.SaveChangesAsync();
 
             return _mapper.Map<BarberLevelResponse>(entity);
@@ -75,14 +94,22 @@ namespace BarberMe.Services.Services
 
         public async Task<BarberLevelResponse?> UpdateAsync(int id, BarberLevelUpdateRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.Name))
+                throw new BusinessException("Barber level name is required.");
+
             var entity = await _context.BarberLevels
                 .FirstOrDefaultAsync(x => x.BarberLevelId == id);
 
             if (entity == null)
-                return null;
+                throw new NotFoundException("Barber level does not exist.");
+
+            var exists = await _context.BarberLevels
+                .AnyAsync(x => x.Name == request.Name && x.BarberLevelId != id);
+
+            if (exists)
+                throw new BusinessException("Barber level with this name already exists.");
 
             _mapper.Map(request, entity);
-
             await _context.SaveChangesAsync();
 
             return _mapper.Map<BarberLevelResponse>(entity);
@@ -94,9 +121,12 @@ namespace BarberMe.Services.Services
                 .FirstOrDefaultAsync(x => x.BarberLevelId == id);
 
             if (entity == null)
-                return false;
+                throw new NotFoundException("Barber level does not exist.");
 
-            _context.BarberLevels.Remove(entity);
+            if (!entity.IsActive)
+                throw new BusinessException("Barber level is already inactive.");
+
+            entity.IsActive = false;
 
             await _context.SaveChangesAsync();
 

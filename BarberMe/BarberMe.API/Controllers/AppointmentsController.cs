@@ -1,4 +1,5 @@
-﻿using BarberMe.Model.Requests.Appointment;
+﻿using BarberMe.Model.Exceptions;
+using BarberMe.Model.Requests.Appointment;
 using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.Appointment;
 using BarberMe.Model.SearchObjects;
@@ -43,25 +44,11 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<AppointmentResponse>> Update(int id, AppointmentUpdateRequest request)
+        public async Task<ActionResult<AppointmentResponse>> Update(int id)
         {
-            var result = await _service.UpdateAsync(id, request);
-
-            if (result == null)
-                return NotFound();
+            var result = await _service.UpdateAsync(id);
 
             return Ok(result);
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<bool>> Delete(int id)
-        {
-            var result = await _service.DeleteAsync(id);
-
-            if (!result)
-                return NotFound(false);
-
-            return Ok(true);
         }
 
         [HttpGet("available-slots")]
@@ -75,9 +62,9 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpPut("{id}/cancel")]
-        public async Task<IActionResult> Cancel(int id)
+        public async Task<IActionResult> Cancel(int id, AppointmentUpdateRequest request)
         {
-            await _service.CancelAppointment(id);
+            await _service.CancelAppointment(id, request);
             return Ok();
         }
 

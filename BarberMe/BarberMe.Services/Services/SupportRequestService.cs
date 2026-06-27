@@ -7,6 +7,8 @@ using BarberMe.Model.Responses.Support;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using BarberMe.Model.Exceptions;
+using BarberMe.Model.Enum;
 
 namespace BarberMe.Services.Services
 {
@@ -42,6 +44,15 @@ namespace BarberMe.Services.Services
             var page = search.Page ?? 1;
             var pageSize = search.PageSize ?? 10;
 
+            if (page < 1)
+                page = 1;
+
+            if (pageSize < 1)
+                pageSize = 10;
+
+            if (pageSize > 100)
+                pageSize = 100;
+
             var list = await query
                 .OrderByDescending(x => x.CreatedAt)
                 .Skip((page - 1) * pageSize)
@@ -63,12 +74,30 @@ namespace BarberMe.Services.Services
                 .Include(x => x.User)
                 .FirstOrDefaultAsync(x => x.SupportRequestId == id);
 
-            return entity == null ? null : _mapper.Map<SupportRequestResponse>(entity);
+            if (entity == null)
+                throw new NotFoundException("Support request does not exist.");
+
+            return _mapper.Map<SupportRequestResponse>(entity);
         }
 
         public async Task<SupportRequestResponse> InsertAsync(SupportRequestInsertRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.FullName))
+                throw new BusinessException("Full name is required.");
+
+            if (string.IsNullOrWhiteSpace(request.Email))
+                throw new BusinessException("Email is required.");
+
+            if (string.IsNullOrWhiteSpace(request.Subject))
+                throw new BusinessException("Subject is required.");
+
+            if (string.IsNullOrWhiteSpace(request.Message))
+                throw new BusinessException("Message is required.");
+
             var entity = _mapper.Map<SupportRequest>(request);
+
+            entity.Status = SupportRequestStatus.Open;
+            entity.CreatedAt = DateTime.UtcNow;
 
             _context.SupportRequests.Add(entity);
             await _context.SaveChangesAsync();
@@ -82,9 +111,12 @@ namespace BarberMe.Services.Services
                 .FirstOrDefaultAsync(x => x.SupportRequestId == id);
 
             if (entity == null)
-                return;
+                throw new NotFoundException("Support request does not exist.");
 
-            entity.Status = BarberMe.Model.Enum.SupportRequestStatus.Closed;
+            if (entity.Status == SupportRequestStatus.Closed)
+                throw new BusinessException("Support request is already closed.");
+
+            entity.Status = SupportRequestStatus.Closed;
 
             await _context.SaveChangesAsync();
         }
