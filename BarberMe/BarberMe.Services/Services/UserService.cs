@@ -15,11 +15,16 @@ namespace BarberMe.Services.Services
     {
         private readonly BarberMeDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IJwtService _jwtService;
 
-        public UserService(BarberMeDbContext context, IMapper mapper)
+        public UserService(
+            BarberMeDbContext context,
+            IMapper mapper,
+            IJwtService jwtService)
         {
             _context = context;
             _mapper = mapper;
+            _jwtService = jwtService;
         }
 
         public async Task<PagedResponse<UserResponse>> GetAsync(UserSearchObject search)
@@ -109,29 +114,158 @@ namespace BarberMe.Services.Services
             return true;
         }
 
-        public Task<LoginResponse> Login(LoginRequest request)
+        public async Task<LoginResponse> Login(LoginRequest request)
         {
-            throw new NotImplementedException();
+            var user = await _context.Users
+                .Include(x => x.Role)
+                .Include(x => x.BarberLevel)
+                .FirstOrDefaultAsync(x => x.Username == request.Username);
+
+            if (user == null)
+                throw new Exception("Invalid username or password.");
+
+            if (!user.IsActive)
+                throw new Exception("User account is inactive.");
+
+            if (user.IsLocked &&
+                user.LockedUntil.HasValue &&
+                user.LockedUntil > DateTime.UtcNow)
+            {
+                throw new Exception("User account is locked.");
+            }
+
+            var passwordValid = BCrypt.Net.BCrypt.Verify(
+                request.Password,
+                user.PasswordHash);
+
+            if (!passwordValid)
+            {
+                user.FailedLoginAttempts++;
+
+                if (user.FailedLoginAttempts >= 5)
+                {
+                    user.IsLocked = true;
+                    user.LockedUntil = DateTime.UtcNow.AddMinutes(15);
+                }
+
+                await _context.SaveChangesAsync();
+
+                throw new Exception("Invalid username or password.");
+            }
+
+            user.FailedLoginAttempts = 0;
+            user.IsLocked = false;
+            user.LockedUntil = null;
+
+            await _context.SaveChangesAsync();
+
+            var token = _jwtService.GenerateToken(user);
+
+            return new LoginResponse
+            {
+                Token = token,
+                User = _mapper.Map<UserResponse>(user)
+            };
         }
 
-        public Task ForgotPassword(ForgotPasswordRequest request)
+        public async Task<UserResponse> Register(RegisterRequest request)
         {
-            throw new NotImplementedException();
+            var usernameExists = await _context.Users
+                .AnyAsync(x => x.Username == request.Username);
+
+            if (usernameExists)
+                throw new Exception("Username already exists.");
+
+            var emailExists = await _context.Users
+                .AnyAsync(x => x.Email == request.Email);
+
+            if (emailExists)
+                throw new Exception("Email already exists.");
+
+            var clientRole = await _context.Roles
+                .FirstOrDefaultAsync(x => x.Name == "Client");
+
+            if (clientRole == null)
+                throw new Exception("Client role does not exist.");
+
+            var entity = new User
+            {
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                Username = request.Username,
+                Email = request.Email,
+                PhoneNumber = request.PhoneNumber,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                RoleId = clientRole.RoleId,
+                IsActive = true
+            };
+
+            _context.Users.Add(entity);
+            await _context.SaveChangesAsync();
+
+            var user = await _context.Users
+                .Include(x => x.Role)
+                .Include(x => x.BarberLevel)
+                .FirstAsync(x => x.UserId == entity.UserId);
+
+            return _mapper.Map<UserResponse>(user);
         }
 
-        public Task ResetPassword(ResetPasswordRequest request)
+        public async Task ForgotPassword(ForgotPasswordRequest request)
         {
-            throw new NotImplementedException();
+            if (request.NewPassword != request.ConfirmPassword)
+                throw new Exception("Passwords do not match.");
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(x => x.Email == request.Email);
+
+            if (user == null)
+                throw new Exception("User not found.");
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+
+            await _context.SaveChangesAsync();
         }
 
-        public Task ChangePassword(int userId, ChangePasswordRequest request)
+        public async Task ChangePassword(int userId, ChangePasswordRequest request)
         {
-            throw new NotImplementedException();
+            if (request.NewPassword != request.ConfirmPassword)
+                throw new Exception("Passwords do not match.");
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(x => x.UserId == userId);
+
+            if (user == null)
+                throw new Exception("User does not exist.");
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            user.RequirePasswordChange = false;
+
+            await _context.SaveChangesAsync();
         }
 
-        public Task<string> UploadProfileImage(int userId, UploadProfileImageRequest request)
+        public async Task<string> UploadProfileImage(int userId, UploadProfileImageRequest request)
         {
-            throw new NotImplementedException();
+            var user = await _context.Users.FindAsync(userId);
+
+            if (user == null)
+                throw new Exception("User not found.");
+
+            var folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "profiles");
+            Directory.CreateDirectory(folder);
+
+            var extension = Path.GetExtension(request.File.FileName);
+            var fileName = $"{Guid.NewGuid()}{extension}";
+            var path = Path.Combine(folder, fileName);
+
+            using var stream = new FileStream(path, FileMode.Create);
+            await request.File.CopyToAsync(stream);
+
+            user.ProfileImagePath = $"images/profiles/{fileName}";
+
+            await _context.SaveChangesAsync();
+
+            return user.ProfileImagePath;
         }
     }
 }

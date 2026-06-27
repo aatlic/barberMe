@@ -1,7 +1,9 @@
-﻿namespace BarberMe.Model.Requests.User
+﻿using Microsoft.AspNetCore.Http;
+
+namespace BarberMe.Model.Requests.User
 {
     public class UploadProfileImageRequest
     {
-        public byte[] File { get; set; } = null!;
+        public IFormFile File { get; set; } = null!;
     }
 }

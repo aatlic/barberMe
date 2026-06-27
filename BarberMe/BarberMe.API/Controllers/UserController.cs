@@ -5,6 +5,7 @@ using BarberMe.Model.Responses.Auth;
 using BarberMe.Model.Responses.User;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
+using BarberMe.Services.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BarberMe.API.Controllers
@@ -73,17 +74,17 @@ namespace BarberMe.API.Controllers
             return Ok(result);
         }
 
+        [HttpPost("register")]
+        public async Task<ActionResult<UserResponse>> Register(RegisterRequest request)
+        {
+            var result = await _service.Register(request);
+            return Ok(result);
+        }
+
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
         {
             await _service.ForgotPassword(request);
-            return Ok();
-        }
-
-        [HttpPost("reset-password")]
-        public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
-        {
-            await _service.ResetPassword(request);
             return Ok();
         }
 
@@ -97,7 +98,7 @@ namespace BarberMe.API.Controllers
         [HttpPost("{userId}/upload-profile-image")]
         public async Task<ActionResult<string>> UploadProfileImage(
             int userId,
-            UploadProfileImageRequest request)
+            [FromForm] UploadProfileImageRequest request)
         {
             var result = await _service.UploadProfileImage(userId, request);
             return Ok(result);
