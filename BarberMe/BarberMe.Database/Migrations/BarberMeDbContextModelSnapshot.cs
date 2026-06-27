@@ -90,7 +90,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasIndex("BarberId", "StartDateTime", "EndDateTime");
 
-                    b.ToTable("Appointments");
+                    b.ToTable("Appointments", (string)null);
                 });
 
             modelBuilder.Entity("BarberMe.Database.Models.AppointmentStatus", b =>
@@ -108,7 +108,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasKey("AppointmentStatusId");
 
-                    b.ToTable("AppointmentStatuses");
+                    b.ToTable("AppointmentStatuses", (string)null);
 
                     b.HasData(
                         new
@@ -148,7 +148,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasKey("BarberLevelId");
 
-                    b.ToTable("BarberLevels");
+                    b.ToTable("BarberLevels", (string)null);
 
                     b.HasData(
                         new
@@ -198,7 +198,7 @@ namespace BarberMe.Database.Migrations
                     b.HasIndex("BarberId", "ServiceId")
                         .IsUnique();
 
-                    b.ToTable("BarberServices");
+                    b.ToTable("BarberServices", (string)null);
 
                     b.HasData(
                         new
@@ -265,7 +265,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasKey("NewsId");
 
-                    b.ToTable("News");
+                    b.ToTable("News", (string)null);
                 });
 
             modelBuilder.Entity("BarberMe.Database.Models.Notification", b =>
@@ -307,7 +307,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Notifications");
+                    b.ToTable("Notifications", (string)null);
                 });
 
             modelBuilder.Entity("BarberMe.Database.Models.NotificationType", b =>
@@ -325,7 +325,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasKey("NotificationTypeId");
 
-                    b.ToTable("NotificationTypes");
+                    b.ToTable("NotificationTypes", (string)null);
 
                     b.HasData(
                         new
@@ -389,7 +389,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasIndex("PaymentStatusId");
 
-                    b.ToTable("Payments");
+                    b.ToTable("Payments", (string)null);
                 });
 
             modelBuilder.Entity("BarberMe.Database.Models.PaymentStatus", b =>
@@ -407,7 +407,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasKey("PaymentStatusId");
 
-                    b.ToTable("PaymentStatuses");
+                    b.ToTable("PaymentStatuses", (string)null);
 
                     b.HasData(
                         new
@@ -466,7 +466,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Recommendations");
+                    b.ToTable("Recommendations", (string)null);
                 });
 
             modelBuilder.Entity("BarberMe.Database.Models.RecommendationFeedback", b =>
@@ -494,7 +494,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasIndex("RecommendationId");
 
-                    b.ToTable("RecommendationFeedbacks");
+                    b.ToTable("RecommendationFeedbacks", (string)null);
                 });
 
             modelBuilder.Entity("BarberMe.Database.Models.Refund", b =>
@@ -526,7 +526,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasIndex("PaymentId");
 
-                    b.ToTable("Refunds");
+                    b.ToTable("Refunds", (string)null);
                 });
 
             modelBuilder.Entity("BarberMe.Database.Models.Review", b =>
@@ -565,7 +565,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.ToTable("Reviews");
+                    b.ToTable("Reviews", (string)null);
                 });
 
             modelBuilder.Entity("BarberMe.Database.Models.Role", b =>
@@ -583,7 +583,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasKey("RoleId");
 
-                    b.ToTable("Roles");
+                    b.ToTable("Roles", (string)null);
 
                     b.HasData(
                         new
@@ -634,7 +634,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasKey("ServiceId");
 
-                    b.ToTable("Services");
+                    b.ToTable("Services", (string)null);
 
                     b.HasData(
                         new
@@ -717,7 +717,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("SupportRequests");
+                    b.ToTable("SupportRequests", (string)null);
                 });
 
             modelBuilder.Entity("BarberMe.Database.Models.User", b =>
@@ -796,7 +796,7 @@ namespace BarberMe.Database.Migrations
                     b.HasIndex("Username")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
 
                     b.HasData(
                         new
@@ -878,7 +878,7 @@ namespace BarberMe.Database.Migrations
                     b.HasIndex("BarberId", "DayOfWeek")
                         .IsUnique();
 
-                    b.ToTable("WorkingHours");
+                    b.ToTable("WorkingHours", (string)null);
 
                     b.HasData(
                         new

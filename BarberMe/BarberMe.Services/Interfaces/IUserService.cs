@@ -15,9 +15,9 @@ namespace BarberMe.Services.Interfaces
     {
         Task<LoginResponse> Login(LoginRequest request);
 
-        Task ForgotPassword(ForgotPasswordRequest request);
+        Task<UserResponse> Register(RegisterRequest request);
 
-        Task ResetPassword(ResetPasswordRequest request);
+        Task ForgotPassword(ForgotPasswordRequest request);
 
         Task ChangePassword(int userId,
                             ChangePasswordRequest request);
