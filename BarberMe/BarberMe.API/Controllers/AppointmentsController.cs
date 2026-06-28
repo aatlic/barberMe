@@ -1,15 +1,17 @@
-﻿using BarberMe.Model.Exceptions;
+﻿using BarberMe.Model.Constants;
 using BarberMe.Model.Requests.Appointment;
 using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.Appointment;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BarberMe.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Barber},{Roles.Client}")]
     public class AppointmentsController : ControllerBase
     {
         private readonly IAppointmentService _service;
@@ -44,9 +46,10 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<AppointmentResponse>> Update(int id)
+        [Authorize(Roles = $"{Roles.Barber},{Roles.Admin}")]
+        public async Task<ActionResult<AppointmentResponse>> Update(int id, AppointmentUpdateRequest request)
         {
-            var result = await _service.UpdateAsync(id);
+            var result = await _service.UpdateAsync(id, request);
 
             return Ok(result);
         }
@@ -69,6 +72,7 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpPut("{id}/confirm")]
+        [Authorize(Roles = $"{Roles.Barber},{Roles.Admin}")]
         public async Task<IActionResult> Confirm(int id)
         {
             await _service.ConfirmAppointment(id);

@@ -1,17 +1,19 @@
-﻿using BarberMe.Model.Requests.Auth;
+﻿using BarberMe.Model.Constants;
+using BarberMe.Model.Requests.Auth;
 using BarberMe.Model.Requests.User;
 using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.Auth;
 using BarberMe.Model.Responses.User;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
-using BarberMe.Services.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BarberMe.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _service;
@@ -22,23 +24,23 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<PagedResponse<UserResponse>> Get([FromQuery] UserSearchObject search)
         {
             return await _service.GetAsync(search);
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = $"{Roles.Admin},{Roles.Barber},{Roles.Client}")]
         public async Task<ActionResult<UserResponse>> GetById(int id)
         {
             var result = await _service.GetByIdAsync(id);
-
-            if (result == null)
-                return NotFound();
 
             return Ok(result);
         }
 
         [HttpPost]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult<UserResponse>> Insert(UserInsertRequest request)
         {
             var result = await _service.InsertAsync(request);
@@ -46,27 +48,24 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = $"{Roles.Admin},{Roles.Barber},{Roles.Client}")]
         public async Task<ActionResult<UserResponse>> Update(int id, UserUpdateRequest request)
         {
             var result = await _service.UpdateAsync(id, request);
-
-            if (result == null)
-                return NotFound();
 
             return Ok(result);
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = $"{Roles.Admin},{Roles.Barber},{Roles.Client}")]
         public async Task<ActionResult<bool>> Delete(int id)
         {
             var result = await _service.DeleteAsync(id);
 
-            if (!result)
-                return NotFound(false);
-
             return Ok(true);
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
         {
@@ -74,6 +73,7 @@ namespace BarberMe.API.Controllers
             return Ok(result);
         }
 
+        [AllowAnonymous]
         [HttpPost("register")]
         public async Task<ActionResult<UserResponse>> Register(RegisterRequest request)
         {
@@ -81,6 +81,7 @@ namespace BarberMe.API.Controllers
             return Ok(result);
         }
 
+        [AllowAnonymous]
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
         {
@@ -89,6 +90,7 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpPut("{userId}/change-password")]
+        [Authorize(Roles = $"{Roles.Admin},{Roles.Barber},{Roles.Client}")]
         public async Task<IActionResult> ChangePassword(int userId, ChangePasswordRequest request)
         {
             await _service.ChangePassword(userId, request);
@@ -96,6 +98,7 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpPost("{userId}/upload-profile-image")]
+        [Authorize(Roles = $"{Roles.Admin},{Roles.Barber},{Roles.Client}")]
         public async Task<ActionResult<string>> UploadProfileImage(
             int userId,
             [FromForm] UploadProfileImageRequest request)

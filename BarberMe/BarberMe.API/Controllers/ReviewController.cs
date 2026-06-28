@@ -1,14 +1,17 @@
-﻿using BarberMe.Model.Requests.Review;
+﻿using BarberMe.Model.Constants;
+using BarberMe.Model.Requests.Review;
 using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.Appointment;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BarberMe.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Barber},{Roles.Client}")]
     public class ReviewsController : ControllerBase
     {
         private readonly IReviewService _service;
@@ -36,6 +39,7 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = Roles.Client)]
         public async Task<ActionResult<ReviewResponse>> Insert(ReviewInsertRequest request)
         {
             var result = await _service.InsertAsync(request);

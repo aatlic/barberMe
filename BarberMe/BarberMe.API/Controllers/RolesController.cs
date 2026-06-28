@@ -3,11 +3,13 @@ using BarberMe.Model.Responses.User;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BarberMe.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin")]
     public class RolesController : ControllerBase
     {
         private readonly IRoleService _service;
@@ -28,9 +30,6 @@ namespace BarberMe.API.Controllers
         public async Task<ActionResult<RoleResponse>> GetById(int id)
         {
             var result = await _service.GetByIdAsync(id);
-
-            if (result == null)
-                return NotFound();
 
             return Ok(result);
         }
