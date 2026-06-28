@@ -1,14 +1,17 @@
-﻿using BarberMe.Model.Requests.Notification;
+﻿using BarberMe.Model.Constants;
+using BarberMe.Model.Requests.Notification;
 using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.Notification;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BarberMe.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = $"{Roles.Admin},{Roles.Barber},{Roles.Client}")]
     public class NotificationsController : ControllerBase
     {
         private readonly INotificationService _service;
@@ -30,13 +33,11 @@ namespace BarberMe.API.Controllers
         {
             var result = await _service.GetByIdAsync(id);
 
-            if (result == null)
-                return NotFound();
-
             return Ok(result);
         }
 
         [HttpPost]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult<NotificationResponse>> Insert(
             NotificationInsertRequest request)
         {

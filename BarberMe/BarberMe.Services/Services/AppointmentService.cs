@@ -143,14 +143,15 @@ namespace BarberMe.Services.Services
             return _mapper.Map<AppointmentResponse>(entity);
         }
 
-        public async Task<AppointmentResponse?> UpdateAsync(int id)
+        public async Task<AppointmentResponse?> UpdateAsync(int id, AppointmentUpdateRequest request)
         {
             var entity = await _context.Appointments
                 .FirstOrDefaultAsync(x => x.AppointmentId == id);
 
             if (entity == null)
                 throw new NotFoundException("Appointment does not exist.");
-
+            
+            _mapper.Map(request, entity);
             await _context.SaveChangesAsync();
 
             return _mapper.Map<AppointmentResponse>(entity);
