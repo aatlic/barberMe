@@ -1,5 +1,5 @@
 ﻿using BarberMe.Model.Constants;
-using BarberMe.Model.Requests.RecommendationFeedbacl;
+using BarberMe.Model.Requests.RecommendationFeedback;
 using BarberMe.Model.Responses.Recommendation;
 using BarberMe.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;

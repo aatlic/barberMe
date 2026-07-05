@@ -1,13 +1,25 @@
-﻿namespace BarberMe.Model.Requests.User
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace BarberMe.Model.Requests.User
 {
     public class UserUpdateRequest
     {
+        [Required(ErrorMessage = "First name is required.")]
+        [StringLength(50, MinimumLength = 2, ErrorMessage = "First name must be between 2 and 50 characters.")]
         public string FirstName { get; set; } = null!;
 
+        [Required(ErrorMessage = "Last name is required.")]
+        [StringLength(50, MinimumLength = 2, ErrorMessage = "Last name must be between 2 and 50 characters.")]
         public string LastName { get; set; } = null!;
 
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
+        [StringLength(100, ErrorMessage = "Email must not exceed 100 characters.")]
         public string Email { get; set; } = null!;
 
+        [Required(ErrorMessage = "Phone number is required.")]
+        [Phone(ErrorMessage = "Please enter a valid phone number.")]
+        [StringLength(30, ErrorMessage = "Phone number must not exceed 30 characters.")]
         public string PhoneNumber { get; set; } = null!;
 
         public int? BarberLevelId { get; set; }

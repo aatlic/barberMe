@@ -1,17 +1,35 @@
 using BarberMe.API.Mapping;
+using BarberMe.API.Middleware;
 using BarberMe.Database.Context;
 using BarberMe.Model.Auth;
 using BarberMe.Services.Interfaces;
 using BarberMe.Services.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using BarberMe.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(x => x.Value?.Errors.Count > 0)
+                .SelectMany(x => x.Value!.Errors)
+                .Select(e => e.ErrorMessage)
+                .ToList();
+
+            return new BadRequestObjectResult(new
+            {
+                message = "Validation failed.",
+                errors = errors
+            });
+        };
+    });
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
