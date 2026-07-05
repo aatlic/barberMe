@@ -11,7 +11,7 @@ using BarberMe.Model.Requests.Appointment;
 using BarberMe.Model.Requests.BarberLevel;
 using BarberMe.Model.Requests.BarberService;
 using BarberMe.Model.Requests.Notification;
-using BarberMe.Model.Requests.RecommendationFeedbacl;
+using BarberMe.Model.Requests.RecommendationFeedback;
 using BarberMe.Model.Requests.Refund;
 using BarberMe.Model.Requests.Review;
 using BarberMe.Model.Requests.Service;

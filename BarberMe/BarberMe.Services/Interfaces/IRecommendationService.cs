@@ -1,4 +1,4 @@
-﻿using BarberMe.Model.Requests.RecommendationFeedbacl;
+﻿using BarberMe.Model.Requests.RecommendationFeedback;
 using BarberMe.Model.Responses.Recommendation;
 
 namespace BarberMe.Services.Interfaces

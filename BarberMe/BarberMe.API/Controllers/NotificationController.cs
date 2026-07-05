@@ -39,7 +39,7 @@ namespace BarberMe.API.Controllers
         [HttpPost]
         [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult<NotificationResponse>> Insert(
-            NotificationInsertRequest request)
+           [FromBody] NotificationInsertRequest request)
         {
             var result = await _service.InsertAsync(request);
             return Ok(result);
