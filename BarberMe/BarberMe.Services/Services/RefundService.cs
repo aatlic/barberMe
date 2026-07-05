@@ -1,10 +1,11 @@
 ﻿using AutoMapper;
 using BarberMe.Database.Context;
 using BarberMe.Database.Models;
+using BarberMe.Model.Constants;
+using BarberMe.Model.Exceptions;
 using BarberMe.Model.Requests.Refund;
 using BarberMe.Model.Responses.Payment;
 using BarberMe.Services.Interfaces;
-using BarberMe.Model.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace BarberMe.Services.Services
@@ -13,13 +14,16 @@ namespace BarberMe.Services.Services
     {
         private readonly BarberMeDbContext _context;
         private readonly IMapper _mapper;
+        private readonly ICurrentUserService _currentUserService;
 
         public RefundService(
             BarberMeDbContext context,
-            IMapper mapper)
+            IMapper mapper,
+            ICurrentUserService currentUserService)
         {
             _context = context;
             _mapper = mapper;
+            _currentUserService = currentUserService;
         }
 
         public async Task<RefundResponse> InsertAsync(RefundInsertRequest request)
@@ -31,10 +35,17 @@ namespace BarberMe.Services.Services
                 throw new BusinessException("Refund amount must be greater than zero.");
 
             var payment = await _context.Payments
+                .Include(x => x.Appointment)
                 .FirstOrDefaultAsync(x => x.PaymentId == request.PaymentId);
 
             if (payment == null)
                 throw new NotFoundException("Payment does not exist.");
+
+            if (_currentUserService.Role == Roles.Client &&
+                payment.Appointment.ClientId != _currentUserService.UserId)
+            {
+                throw new UnauthorizedException("You are not allowed to request a refund for this payment.");
+            }
 
             if (request.Amount > payment.Amount)
                 throw new BusinessException("Refund amount cannot be greater than the payment amount.");

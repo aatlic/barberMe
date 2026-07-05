@@ -52,10 +52,10 @@ namespace BarberMe.API.Controllers
             return Ok();
         }
 
-        [HttpGet("unread-count/{userId}")]
-        public async Task<ActionResult<int>> GetUnreadCount(int userId)
+        [HttpGet("unread-count")]
+        public async Task<ActionResult<int>> GetUnreadCount()
         {
-            var result = await _service.GetUnreadCount(userId);
+            var result = await _service.GetUnreadCount();
             return Ok(result);
         }
     }

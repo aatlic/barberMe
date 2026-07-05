@@ -1,14 +1,15 @@
 ﻿using AutoMapper;
 using BarberMe.Database.Context;
 using BarberMe.Database.Models;
+using BarberMe.Model.Enum;
+using BarberMe.Model.Exceptions;
 using BarberMe.Model.Requests.Support;
 using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.Support;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using BarberMe.Model.Exceptions;
-using BarberMe.Model.Enum;
+using System.ComponentModel.DataAnnotations;
 
 namespace BarberMe.Services.Services
 {
@@ -87,6 +88,9 @@ namespace BarberMe.Services.Services
 
             if (string.IsNullOrWhiteSpace(request.Email))
                 throw new BusinessException("Email is required.");
+
+            if (!new EmailAddressAttribute().IsValid(request.Email))
+                throw new BusinessException("Email address is not valid.");
 
             if (string.IsNullOrWhiteSpace(request.Subject))
                 throw new BusinessException("Subject is required.");

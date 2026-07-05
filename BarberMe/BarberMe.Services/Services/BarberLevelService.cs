@@ -85,6 +85,7 @@ namespace BarberMe.Services.Services
                 throw new BusinessException("Barber level with this name already exists.");
 
             var entity = _mapper.Map<BarberLevel>(request);
+            entity.IsActive = true;
 
             _context.BarberLevels.Add(entity);
             await _context.SaveChangesAsync();

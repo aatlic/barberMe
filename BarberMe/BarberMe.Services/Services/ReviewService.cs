@@ -1,13 +1,14 @@
 ﻿using AutoMapper;
 using BarberMe.Database.Context;
 using BarberMe.Database.Models;
+using BarberMe.Model.Constants;
+using BarberMe.Model.Exceptions;
 using BarberMe.Model.Requests.Review;
 using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.Appointment;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using BarberMe.Model.Exceptions;
 
 namespace BarberMe.Services.Services
 {
@@ -15,11 +16,16 @@ namespace BarberMe.Services.Services
     {
         private readonly BarberMeDbContext _context;
         private readonly IMapper _mapper;
+        private readonly ICurrentUserService _currentUserService;
 
-        public ReviewService(BarberMeDbContext context, IMapper mapper)
+        public ReviewService(
+            BarberMeDbContext context,
+            IMapper mapper,
+            ICurrentUserService currentUserService)
         {
             _context = context;
             _mapper = mapper;
+            _currentUserService = currentUserService;
         }
 
         public async Task<PagedResponse<ReviewResponse>> GetAsync(ReviewSearchObject search)
@@ -30,11 +36,22 @@ namespace BarberMe.Services.Services
                 .Include(x => x.Appointment)
                 .AsQueryable();
 
-            if (search.ClientId.HasValue)
-                query = query.Where(x => x.ClientId == search.ClientId.Value);
+            if (_currentUserService.Role == Roles.Client)
+            {
+                query = query.Where(x => x.ClientId == _currentUserService.UserId);
+            }
+            else if (_currentUserService.Role == Roles.Barber)
+            {
+                query = query.Where(x => x.BarberId == _currentUserService.UserId);
+            }
+            else
+            {
+                if (search.ClientId.HasValue)
+                    query = query.Where(x => x.ClientId == search.ClientId.Value);
 
-            if (search.BarberId.HasValue)
-                query = query.Where(x => x.BarberId == search.BarberId.Value);
+                if (search.BarberId.HasValue)
+                    query = query.Where(x => x.BarberId == search.BarberId.Value);
+            }
 
             if (search.Rating.HasValue)
                 query = query.Where(x => x.Rating == search.Rating.Value);
@@ -95,6 +112,12 @@ namespace BarberMe.Services.Services
 
             if (appointment == null)
                 throw new NotFoundException("Appointment does not exist.");
+
+            if (_currentUserService.Role == Roles.Client &&
+                appointment.ClientId != _currentUserService.UserId)
+            {
+                throw new UnauthorizedException("You are not allowed to review this appointment.");
+            }
 
             if (appointment.CompletedAt == null)
                 throw new BusinessException("You can review only completed appointments.");

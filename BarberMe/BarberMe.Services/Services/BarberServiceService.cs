@@ -77,9 +77,7 @@ namespace BarberMe.Services.Services
             if (entity == null)
                 throw new NotFoundException("Barber service does not exist.");
 
-            return entity == null
-                ? null
-                : _mapper.Map<BarberServiceResponse>(entity);
+            return _mapper.Map<BarberServiceResponse>(entity);
         }
 
         public async Task<BarberServiceResponse> InsertAsync(BarberServiceInsertRequest request)

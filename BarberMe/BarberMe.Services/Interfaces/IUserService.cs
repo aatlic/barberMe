@@ -19,11 +19,8 @@ namespace BarberMe.Services.Interfaces
 
         Task ForgotPassword(ForgotPasswordRequest request);
 
-        Task ChangePassword(int userId,
-                            ChangePasswordRequest request);
+        Task ChangePassword(ChangePasswordRequest request);
 
-        Task<string> UploadProfileImage(
-                int userId,
-                UploadProfileImageRequest request);
+        Task<string> UploadProfileImage(UploadProfileImageRequest request);
     }
 }

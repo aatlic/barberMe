@@ -1,16 +1,17 @@
-﻿using BarberMe.Model.Requests.WorkingHours;
+﻿using BarberMe.Model.Constants;
+using BarberMe.Model.Requests.WorkingHours;
 using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.Service;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace BarberMe.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Roles.Admin)]
     public class WorkingHoursController : ControllerBase
     {
         private readonly IWorkingHoursService _service;

@@ -19,10 +19,10 @@ namespace BarberMe.API.Controllers
             _service = service;
         }
 
-        [HttpGet("{userId}")]
-        public async Task<ActionResult<List<RecommendationResponse>>> GetRecommendations(int userId)
+        [HttpGet]
+        public async Task<ActionResult<List<RecommendationResponse>>> GetRecommendations()
         {
-            var result = await _service.GetRecommendations(userId);
+            var result = await _service.GetRecommendations();
             return Ok(result);
         }
 
