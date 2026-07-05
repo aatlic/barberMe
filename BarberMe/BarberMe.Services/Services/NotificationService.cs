@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using BarberMe.Database.Context;
 using BarberMe.Database.Models;
+using BarberMe.Model.Constants;
 using BarberMe.Model.Exceptions;
 using BarberMe.Model.Requests.Notification;
 using BarberMe.Model.Responses;
@@ -15,22 +16,34 @@ namespace BarberMe.Services.Services
     {
         private readonly BarberMeDbContext _context;
         private readonly IMapper _mapper;
+        private readonly ICurrentUserService _currentUserService;
 
-        public NotificationService(BarberMeDbContext context, IMapper mapper)
+        public NotificationService(
+            BarberMeDbContext context,
+            IMapper mapper,
+            ICurrentUserService currentUserService)
         {
             _context = context;
             _mapper = mapper;
+            _currentUserService = currentUserService;
         }
 
         public async Task<PagedResponse<NotificationResponse>> GetAsync(NotificationSearchObject search)
         {
+
             var query = _context.Notifications
                 .Include(x => x.User)
                 .Include(x => x.NotificationType)
                 .AsQueryable();
 
-            if (search.UserId.HasValue)
+            if (_currentUserService.Role != Roles.Admin)
+            {
+                query = query.Where(x => x.UserId == _currentUserService.UserId);
+            }
+            else if (search.UserId.HasValue)
+            {
                 query = query.Where(x => x.UserId == search.UserId.Value);
+            }
 
             if (search.IsRead.HasValue)
                 query = query.Where(x => x.IsRead == search.IsRead.Value);
@@ -73,6 +86,10 @@ namespace BarberMe.Services.Services
 
             if (entity == null)
                 throw new NotFoundException("Notification does not exist.");
+
+            if (_currentUserService.Role != Roles.Admin &&
+                entity.UserId != _currentUserService.UserId)
+                throw new UnauthorizedException("You are not allowed to access this notification.");
 
             return _mapper.Map<NotificationResponse>(entity);
         }
@@ -122,18 +139,18 @@ namespace BarberMe.Services.Services
             if (entity.IsRead)
                 throw new BusinessException("Notification is already marked as read.");
 
+            if (_currentUserService.Role != Roles.Admin &&
+                entity.UserId != _currentUserService.UserId)
+                throw new UnauthorizedException("You are not allowed to update this notification.");
+
             entity.IsRead = true;
 
             await _context.SaveChangesAsync();
         }
 
-        public async Task<int> GetUnreadCount(int userId)
+        public async Task<int> GetUnreadCount()
         {
-            var userExists = await _context.Users
-                .AnyAsync(x => x.UserId == userId && x.IsActive);
-
-            if (!userExists)
-                throw new NotFoundException("User does not exist.");
+            var userId = _currentUserService.UserId;
 
             return await _context.Notifications
                 .CountAsync(x => x.UserId == userId && !x.IsRead);

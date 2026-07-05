@@ -91,19 +91,17 @@ namespace BarberMe.API.Controllers
 
         [HttpPut("{userId}/change-password")]
         [Authorize(Roles = $"{Roles.Admin},{Roles.Barber},{Roles.Client}")]
-        public async Task<IActionResult> ChangePassword(int userId, ChangePasswordRequest request)
+        public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
         {
-            await _service.ChangePassword(userId, request);
+            await _service.ChangePassword(request);
             return Ok();
         }
 
         [HttpPost("{userId}/upload-profile-image")]
         [Authorize(Roles = $"{Roles.Admin},{Roles.Barber},{Roles.Client}")]
-        public async Task<ActionResult<string>> UploadProfileImage(
-            int userId,
-            [FromForm] UploadProfileImageRequest request)
+        public async Task<ActionResult<string>> UploadProfileImage([FromForm] UploadProfileImageRequest request)
         {
-            var result = await _service.UploadProfileImage(userId, request);
+            var result = await _service.UploadProfileImage(request);
             return Ok(result);
         }
     }

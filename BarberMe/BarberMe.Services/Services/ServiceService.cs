@@ -37,11 +37,6 @@ namespace BarberMe.Services.Services
             var page = search.Page ?? 1;
             var pageSize = search.PageSize ?? 10;
 
-            var list = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
             if (page < 1)
                 page = 1;
 
@@ -50,6 +45,12 @@ namespace BarberMe.Services.Services
 
             if (pageSize > 100)
                 pageSize = 100;
+
+            var list = await query
+                .OrderBy(x => x.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
 
             return new PagedResponse<ServiceResponse>
             {

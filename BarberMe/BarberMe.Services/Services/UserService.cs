@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using BarberMe.Database.Context;
 using BarberMe.Database.Models;
+using BarberMe.Model.Constants;
+using BarberMe.Model.Exceptions;
 using BarberMe.Model.Requests.Auth;
 using BarberMe.Model.Requests.User;
 using BarberMe.Model.Responses;
@@ -9,7 +11,6 @@ using BarberMe.Model.Responses.User;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using BarberMe.Model.Exceptions;
 
 namespace BarberMe.Services.Services
 {
@@ -18,15 +19,17 @@ namespace BarberMe.Services.Services
         private readonly BarberMeDbContext _context;
         private readonly IMapper _mapper;
         private readonly IJwtService _jwtService;
-
+        private readonly ICurrentUserService _currentUserService;
         public UserService(
             BarberMeDbContext context,
             IMapper mapper,
-            IJwtService jwtService)
+            IJwtService jwtService,
+            ICurrentUserService currentUserService)
         {
             _context = context;
             _mapper = mapper;
             _jwtService = jwtService;
+            _currentUserService = currentUserService;
         }
 
         public async Task<PagedResponse<UserResponse>> GetAsync(UserSearchObject search)
@@ -55,6 +58,15 @@ namespace BarberMe.Services.Services
             var page = search.Page ?? 1;
             var pageSize = search.PageSize ?? 10;
 
+            if (page < 1)
+                page = 1;
+
+            if (pageSize < 1)
+                pageSize = 10;
+
+            if (pageSize > 100)
+                pageSize = 100;
+
             var list = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -76,7 +88,10 @@ namespace BarberMe.Services.Services
                 .Include(x => x.BarberLevel)
                 .FirstOrDefaultAsync(x => x.UserId == id);
 
-            return entity == null ? null : _mapper.Map<UserResponse>(entity);
+            if (entity == null)
+                throw new NotFoundException("User does not exist.");
+
+            return _mapper.Map<UserResponse>(entity);
         }
 
         public async Task<UserResponse> InsertAsync(UserInsertRequest request)
@@ -94,7 +109,7 @@ namespace BarberMe.Services.Services
             var entity = await _context.Users.FindAsync(id);
 
             if (entity == null)
-                return null;
+                throw new NotFoundException("User does not exist.");
 
             _mapper.Map(request, entity);
 
@@ -108,9 +123,13 @@ namespace BarberMe.Services.Services
             var entity = await _context.Users.FindAsync(id);
 
             if (entity == null)
-                return false;
+                throw new NotFoundException("User does not exist.");
 
-            _context.Users.Remove(entity);
+            if (!entity.IsActive)
+                throw new BusinessException("User is already inactive.");
+
+            entity.IsActive = false;
+
             await _context.SaveChangesAsync();
 
             return true;
@@ -185,7 +204,7 @@ namespace BarberMe.Services.Services
                 throw new BusinessException("Email already exists.");
 
             var clientRole = await _context.Roles
-                .FirstOrDefaultAsync(x => x.Name == "Client");
+                .FirstOrDefaultAsync(x => x.Name == Roles.Client);
 
             if (clientRole == null)
                 throw new NotFoundException("Client role does not exist.");
@@ -229,10 +248,12 @@ namespace BarberMe.Services.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task ChangePassword(int userId, ChangePasswordRequest request)
+        public async Task ChangePassword(ChangePasswordRequest request)
         {
             if (request.NewPassword != request.ConfirmPassword)
                 throw new BusinessException("Passwords do not match.");
+
+            var userId = _currentUserService.UserId;
 
             var user = await _context.Users
                 .FirstOrDefaultAsync(x => x.UserId == userId);
@@ -246,8 +267,10 @@ namespace BarberMe.Services.Services
             await _context.SaveChangesAsync();
         }
 
-        public async Task<string> UploadProfileImage(int userId, UploadProfileImageRequest request)
+        public async Task<string> UploadProfileImage(UploadProfileImageRequest request)
         {
+            var userId = _currentUserService.UserId;
+
             var user = await _context.Users.FindAsync(userId);
 
             if (user == null)

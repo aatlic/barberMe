@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using BarberMe.Database.Context;
 using BarberMe.Database.Models;
+using BarberMe.Model.Constants;
 using BarberMe.Model.Exceptions;
 using BarberMe.Model.Requests.Appointment;
 using BarberMe.Model.Responses;
@@ -11,15 +12,20 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BarberMe.Services.Services
 {
-    public class AppointmentService: IAppointmentService
+    public class AppointmentService : IAppointmentService
     {
         private readonly BarberMeDbContext _context;
         private readonly IMapper _mapper;
+        private readonly ICurrentUserService _currentUserService;
 
-        public AppointmentService(BarberMeDbContext context, IMapper mapper)
+        public AppointmentService(
+            BarberMeDbContext context,
+            IMapper mapper,
+            ICurrentUserService currentUserService)
         {
             _context = context;
             _mapper = mapper;
+            _currentUserService = currentUserService;
         }
 
         public async Task<PagedResponse<AppointmentResponse>> GetAsync(AppointmentSearchObject search)
@@ -32,6 +38,23 @@ namespace BarberMe.Services.Services
                 .Include(x => x.AppointmentStatus)
                 .AsQueryable();
 
+            if (_currentUserService.Role == Roles.Client)
+            {
+                query = query.Where(x => x.ClientId == _currentUserService.UserId);
+            }
+            else if (_currentUserService.Role == Roles.Barber)
+            {
+                query = query.Where(x => x.BarberId == _currentUserService.UserId);
+            }
+            else if (_currentUserService.Role == Roles.Admin)
+            {
+                if (search.ClientId.HasValue)
+                    query = query.Where(x => x.ClientId == search.ClientId.Value);
+
+                if (search.BarberId.HasValue)
+                    query = query.Where(x => x.BarberId == search.BarberId.Value);
+            }
+
             if (!string.IsNullOrWhiteSpace(search.FTS))
             {
                 query = query.Where(x =>
@@ -40,12 +63,6 @@ namespace BarberMe.Services.Services
                     x.Barber.FirstName.Contains(search.FTS) ||
                     x.Barber.LastName.Contains(search.FTS));
             }
-
-            if (search.ClientId.HasValue)
-                query = query.Where(x => x.ClientId == search.ClientId.Value);
-
-            if (search.BarberId.HasValue)
-                query = query.Where(x => x.BarberId == search.BarberId.Value);
 
             if (search.AppointmentStatusId.HasValue)
                 query = query.Where(x => x.AppointmentStatusId == search.AppointmentStatusId.Value);
@@ -95,13 +112,24 @@ namespace BarberMe.Services.Services
                 .Include(x => x.AppointmentStatus)
                 .FirstOrDefaultAsync(x => x.AppointmentId == id);
 
-            return entity == null ? null : _mapper.Map<AppointmentResponse>(entity);
+            if (entity == null)
+                throw new NotFoundException("Appointment does not exist.");
+
+            ValidateAppointmentAccess(entity);
+
+            return _mapper.Map<AppointmentResponse>(entity);
         }
 
         public async Task<AppointmentResponse> InsertAsync(AppointmentInsertRequest request)
         {
-            if (request.ClientId <= 0)
+            if (_currentUserService.Role == Roles.Client)
+            {
+                request.ClientId = _currentUserService.UserId;
+            }
+            else if (request.ClientId <= 0)
+            {
                 throw new BusinessException("Client is required.");
+            }
 
             if (request.BarberServiceId <= 0)
                 throw new BusinessException("Barber service is required.");
@@ -150,14 +178,20 @@ namespace BarberMe.Services.Services
 
             if (entity == null)
                 throw new NotFoundException("Appointment does not exist.");
-            
+
+            ValidateAppointmentManagementAccess(entity);
+
             _mapper.Map(request, entity);
+
             await _context.SaveChangesAsync();
 
             return _mapper.Map<AppointmentResponse>(entity);
         }
 
-        public async Task<List<AvailableSlotResponse>> GetAvailableSlots(int barberId, int serviceId, DateOnly date)
+        public async Task<List<AvailableSlotResponse>> GetAvailableSlots(
+            int barberId,
+            int serviceId,
+            DateOnly date)
         {
             var barberService = await _context.BarberServices
                 .FirstOrDefaultAsync(x =>
@@ -226,6 +260,8 @@ namespace BarberMe.Services.Services
             if (entity == null)
                 throw new NotFoundException("Appointment does not exist.");
 
+            ValidateAppointmentAccess(entity);
+
             if (entity.CancelledAt != null)
                 throw new BusinessException("Appointment is already cancelled.");
 
@@ -246,6 +282,8 @@ namespace BarberMe.Services.Services
             if (entity == null)
                 throw new NotFoundException("Appointment does not exist.");
 
+            ValidateAppointmentManagementAccess(entity);
+
             if (entity.CancelledAt != null)
                 throw new BusinessException("Cancelled appointment cannot be confirmed.");
 
@@ -253,7 +291,36 @@ namespace BarberMe.Services.Services
                 throw new BusinessException("Appointment is already confirmed.");
 
             entity.ConfirmedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
+        }
+
+        private void ValidateAppointmentAccess(Appointment appointment)
+        {
+            if (_currentUserService.Role == Roles.Admin)
+                return;
+
+            if (_currentUserService.Role == Roles.Client &&
+                appointment.ClientId == _currentUserService.UserId)
+                return;
+
+            if (_currentUserService.Role == Roles.Barber &&
+                appointment.BarberId == _currentUserService.UserId)
+                return;
+
+            throw new UnauthorizedException("You are not allowed to access this appointment.");
+        }
+
+        private void ValidateAppointmentManagementAccess(Appointment appointment)
+        {
+            if (_currentUserService.Role == Roles.Admin)
+                return;
+
+            if (_currentUserService.Role == Roles.Barber &&
+                appointment.BarberId == _currentUserService.UserId)
+                return;
+
+            throw new UnauthorizedException("You are not allowed to manage this appointment.");
         }
     }
 }

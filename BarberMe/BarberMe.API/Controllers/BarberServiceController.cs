@@ -1,14 +1,17 @@
-﻿using BarberMe.Model.Requests.BarberService;
+﻿using BarberMe.Model.Constants;
+using BarberMe.Model.Requests.BarberService;
 using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.Service;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BarberMe.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = Roles.Admin)]
     public class BarberServicesController : ControllerBase
     {
         private readonly IBarberService _service;
@@ -19,6 +22,7 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = $"{Roles.Admin},{Roles.Barber},{Roles.Client}")]
         public async Task<PagedResponse<BarberServiceResponse>> Get(
             [FromQuery] BarberServiceSearchObject search)
         {
@@ -26,12 +30,10 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = $"{Roles.Admin},{Roles.Barber},{Roles.Client}")]
         public async Task<ActionResult<BarberServiceResponse>> GetById(int id)
         {
             var result = await _service.GetByIdAsync(id);
-
-            if (result == null)
-                return NotFound();
 
             return Ok(result);
         }
@@ -51,9 +53,6 @@ namespace BarberMe.API.Controllers
         {
             var result = await _service.UpdateAsync(id, request);
 
-            if (result == null)
-                return NotFound();
-
             return Ok(result);
         }
 
@@ -61,9 +60,6 @@ namespace BarberMe.API.Controllers
         public async Task<ActionResult<bool>> Delete(int id)
         {
             var result = await _service.DeleteAsync(id);
-
-            if (!result)
-                return NotFound(false);
 
             return Ok(true);
         }

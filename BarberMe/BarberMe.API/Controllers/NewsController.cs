@@ -34,9 +34,6 @@ namespace BarberMe.API.Controllers
         {
             var result = await _service.GetByIdAsync(id);
 
-            if (result == null)
-                return NotFound();
-
             return Ok(result);
         }
 
@@ -54,9 +51,6 @@ namespace BarberMe.API.Controllers
         {
             var result = await _service.UpdateAsync(id, request);
 
-            if (result == null)
-                return NotFound();
-
             return Ok(result);
         }
 
@@ -65,9 +59,6 @@ namespace BarberMe.API.Controllers
         public async Task<ActionResult<bool>> Delete(int id)
         {
             var result = await _service.DeleteAsync(id);
-
-            if (!result)
-                return NotFound(false);
 
             return Ok(true);
         }
