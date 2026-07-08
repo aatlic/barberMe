@@ -1,13 +1,14 @@
 ﻿using AutoMapper;
 using BarberMe.Database.Context;
 using BarberMe.Database.Models;
+using BarberMe.Model.Exceptions;
 using BarberMe.Model.Requests.Notification;
 using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.Notification;
 using BarberMe.Model.SearchObjects;
+using BarberMe.Services.Helpers;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using BarberMe.Model.Exceptions;
 
 namespace BarberMe.Services.Services
 {
@@ -81,7 +82,16 @@ namespace BarberMe.Services.Services
             if (string.IsNullOrWhiteSpace(request.Content))
                 throw new BusinessException("News content is required.");
 
+            ImageValidator.Validate(request.Image);
+
             var entity = _mapper.Map<News>(request);
+
+            entity.Image = await ImageStorageHelper.SaveImageAsync(
+                request.Image,
+                "news");
+
+            entity.IsActive = true;
+            entity.CreatedAt = DateTime.UtcNow;
 
             _context.News.Add(entity);
             await _context.SaveChangesAsync();
@@ -104,6 +114,18 @@ namespace BarberMe.Services.Services
                 throw new NotFoundException("News does not exist.");
 
             _mapper.Map(request, entity);
+
+            if (request.Image != null)
+            {
+                ImageValidator.Validate(request.Image);
+
+                ImageStorageHelper.DeleteImageIfExists(entity.Image);
+
+                entity.Image = await ImageStorageHelper.SaveImageAsync(
+                    request.Image,
+                    "news");
+            }
+
             await _context.SaveChangesAsync();
 
             return _mapper.Map<NewsResponse>(entity);

@@ -39,7 +39,7 @@ namespace BarberMe.API.Controllers
 
         [HttpPost]
         [Authorize(Roles = Roles.Admin)]
-        public async Task<ActionResult<NewsResponse>> Insert(NewsInsertRequest request)
+        public async Task<ActionResult<NewsResponse>> Insert([FromForm] NewsInsertRequest request)
         {
             var result = await _service.InsertAsync(request);
             return Ok(result);
@@ -47,7 +47,7 @@ namespace BarberMe.API.Controllers
 
         [HttpPut("{id}")]
         [Authorize(Roles = Roles.Admin)]
-        public async Task<ActionResult<NewsResponse>> Update(int id, NewsUpdateRequest request)
+        public async Task<ActionResult<NewsResponse>> Update(int id, [FromForm] NewsUpdateRequest request)
         {
             var result = await _service.UpdateAsync(id, request);
 

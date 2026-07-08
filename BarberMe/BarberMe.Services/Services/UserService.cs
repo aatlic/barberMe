@@ -9,6 +9,7 @@ using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.Auth;
 using BarberMe.Model.Responses.User;
 using BarberMe.Model.SearchObjects;
+using BarberMe.Services.Helpers;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -360,17 +361,13 @@ namespace BarberMe.Services.Services
             if (user == null)
                 throw new NotFoundException("User not found.");
 
-            var folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "profiles");
-            Directory.CreateDirectory(folder);
+            ImageValidator.Validate(request.File);
 
-            var extension = Path.GetExtension(request.File.FileName);
-            var fileName = $"{Guid.NewGuid()}{extension}";
-            var path = Path.Combine(folder, fileName);
+            ImageStorageHelper.DeleteImageIfExists(user.ProfileImagePath);
 
-            using var stream = new FileStream(path, FileMode.Create);
-            await request.File.CopyToAsync(stream);
-
-            user.ProfileImagePath = $"images/profiles/{fileName}";
+            user.ProfileImagePath = await ImageStorageHelper.SaveImageAsync(
+                request.File,
+                "profiles");
 
             await _context.SaveChangesAsync();
 

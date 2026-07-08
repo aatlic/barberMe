@@ -1,13 +1,14 @@
 ﻿using AutoMapper;
 using BarberMe.Database.Context;
 using BarberMe.Database.Models;
+using BarberMe.Model.Exceptions;
 using BarberMe.Model.Requests.Service;
 using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.Service;
 using BarberMe.Model.SearchObjects;
+using BarberMe.Services.Helpers;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using BarberMe.Model.Exceptions;
 
 namespace BarberMe.Services.Services
 {
@@ -98,6 +99,15 @@ namespace BarberMe.Services.Services
 
             entity.IsActive = true;
 
+            if (request.Image != null)
+            {
+                ImageValidator.Validate(request.Image);
+
+                entity.ImageUrl = await ImageStorageHelper.SaveImageAsync(
+                    request.Image,
+                    "services");
+            }
+
             _context.Services.Add(entity);
             await _context.SaveChangesAsync();
 
@@ -133,6 +143,17 @@ namespace BarberMe.Services.Services
                 throw new BusinessException("Service with this name already exists.");
 
             _mapper.Map(request, entity);
+
+            if (request.Image != null)
+            {
+                ImageValidator.Validate(request.Image);
+
+                ImageStorageHelper.DeleteImageIfExists(entity.ImageUrl);
+
+                entity.ImageUrl = await ImageStorageHelper.SaveImageAsync(
+                    request.Image,
+                    "services");
+            }
 
             await _context.SaveChangesAsync();
 
