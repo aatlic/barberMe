@@ -73,8 +73,17 @@ namespace BarberMe.API.Mapping
             CreateMap<UserInsertRequest, User>();
             CreateMap<UserUpdateRequest, User>();
 
-            CreateMap<ServiceInsertRequest, Service>();
-            CreateMap<ServiceUpdateRequest, Service>();
+            CreateMap<ServiceInsertRequest, Service>()
+                .ForMember(dest => dest.ImageUrl, opt => opt.Ignore());
+
+            CreateMap<ServiceUpdateRequest, Service>()
+                .ForMember(dest => dest.ImageUrl, opt => opt.Ignore());
+
+            CreateMap<NewsInsertRequest, News>()
+                .ForMember(dest => dest.Image, opt => opt.Ignore());
+
+            CreateMap<NewsUpdateRequest, News>()
+                .ForMember(dest => dest.Image, opt => opt.Ignore());
 
             CreateMap<BarberServiceInsertRequest, BarberService>();
             CreateMap<BarberServiceUpdateRequest, BarberService>();
@@ -95,9 +104,6 @@ namespace BarberMe.API.Mapping
             CreateMap<ReviewInsertRequest, Review>();
 
             CreateMap<SupportRequestInsertRequest, SupportRequest>();
-
-            CreateMap<NewsInsertRequest, News>();
-            CreateMap<NewsUpdateRequest, News>();
 
             CreateMap<RecommendationFeedbackInsertRequest, RecommendationFeedback>();
         }

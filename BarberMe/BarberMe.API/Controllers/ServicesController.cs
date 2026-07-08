@@ -36,14 +36,14 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ServiceResponse>> Insert(ServiceInsertRequest request)
+        public async Task<ActionResult<ServiceResponse>> Insert([FromForm] ServiceInsertRequest request)
         {
             var result = await _service.InsertAsync(request);
             return Ok(result);
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<ServiceResponse>> Update(int id, ServiceUpdateRequest request)
+        public async Task<ActionResult<ServiceResponse>> Update(int id, [FromForm] ServiceUpdateRequest request)
         {
             var result = await _service.UpdateAsync(id, request);
 
