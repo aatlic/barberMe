@@ -45,15 +45,6 @@ namespace BarberMe.API.Controllers
             return Ok(result);
         }
 
-        [HttpPut("{id}")]
-        [Authorize(Roles = $"{Roles.Barber},{Roles.Admin}")]
-        public async Task<ActionResult<AppointmentResponse>> Update(int id, AppointmentUpdateRequest request)
-        {
-            var result = await _service.UpdateAsync(id, request);
-
-            return Ok(result);
-        }
-
         [HttpGet("available-slots")]
         public async Task<ActionResult<List<AvailableSlotResponse>>> GetAvailableSlots(
             [FromQuery] int barberId,
@@ -65,7 +56,7 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpPut("{id}/cancel")]
-        public async Task<IActionResult> Cancel(int id, AppointmentUpdateRequest request)
+        public async Task<IActionResult> Cancel(int id, CancelAppointmentRequest request)
         {
             await _service.CancelAppointment(id, request);
             return Ok();
@@ -76,6 +67,14 @@ namespace BarberMe.API.Controllers
         public async Task<IActionResult> Confirm(int id)
         {
             await _service.ConfirmAppointment(id);
+            return Ok();
+        }
+
+        [HttpPut("{id}/complete")]
+        [Authorize(Roles = $"{Roles.Admin},{Roles.Barber}")]
+        public async Task<IActionResult> CompleteAppointment(int id)
+        {
+            await _service.CompleteAppointment(id);
             return Ok();
         }
     }

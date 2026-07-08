@@ -14,10 +14,11 @@ namespace BarberMe.Services.Interfaces
                                             int serviceId,
                                             DateOnly date);
         Task<AppointmentResponse> InsertAsync(AppointmentInsertRequest request);
-        Task<AppointmentResponse?> UpdateAsync(int id, AppointmentUpdateRequest request);
 
-        Task CancelAppointment(int id, AppointmentUpdateRequest request);
+        Task CancelAppointment(int id, CancelAppointmentRequest request);
 
         Task ConfirmAppointment(int id);
+
+        Task CompleteAppointment(int id);
     }
 }

@@ -93,12 +93,15 @@ namespace BarberMe.Services.Services
             if (!barberExists)
                 throw new NotFoundException("Barber does not exist.");
 
-            var alreadyExists = await _context.WorkingHours
-                .AnyAsync(x => x.BarberId == request.BarberId &&
-                               x.DayOfWeek == request.DayOfWeek);
+            var overlaps = await _context.WorkingHours.AnyAsync(x =>
+                x.BarberId == request.BarberId &&
+                x.DayOfWeek == request.DayOfWeek &&
+                x.IsWorking &&
+                request.StartTime < x.EndTime &&
+                request.EndTime > x.StartTime);
 
-            if (alreadyExists)
-                throw new BusinessException("Working hours already exist for this barber and day.");
+            if (overlaps)
+                throw new BusinessException("Working hours overlap with an existing shift.");
 
             var entity = _mapper.Map<WorkingHours>(request);
 
@@ -119,6 +122,17 @@ namespace BarberMe.Services.Services
             if (request.StartTime >= request.EndTime)
                 throw new BusinessException("Start time must be before end time.");
 
+            var overlaps = await _context.WorkingHours.AnyAsync(x =>
+                x.WorkingHoursId != id &&
+                x.BarberId == entity.BarberId &&
+                x.DayOfWeek == entity.DayOfWeek &&
+                x.IsWorking &&
+                request.StartTime < x.EndTime &&
+                request.EndTime > x.StartTime);
+
+            if (overlaps)
+                throw new BusinessException("Working hours overlap with an existing shift.");
+
             _mapper.Map(request, entity);
 
             await _context.SaveChangesAsync();
@@ -133,6 +147,14 @@ namespace BarberMe.Services.Services
 
             if (entity == null)
                 throw new NotFoundException("Working hours do not exist.");
+
+            var hasAppointments = await _context.Appointments.AnyAsync(x =>
+                x.BarberId == entity.BarberId &&
+                x.StartDateTime >= DateTime.UtcNow &&
+                x.AppointmentStatusId != (int)BarberMe.Model.Enum.AppointmentStatusType.Cancelled);
+
+            if (hasAppointments)
+                throw new BusinessException("Working hours cannot be deleted because this barber has appointments.");
 
             _context.WorkingHours.Remove(entity);
             await _context.SaveChangesAsync();

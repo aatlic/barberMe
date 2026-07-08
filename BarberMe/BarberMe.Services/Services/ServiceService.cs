@@ -79,11 +79,14 @@ namespace BarberMe.Services.Services
             if (request.Price <= 0)
                 throw new BusinessException("Service price must be greater than zero.");
 
+            if (request.Price > 10000)
+                throw new BusinessException("Service price cannot exceed 10000.");
+
             if (request.DurationMinutes <= 0)
                 throw new BusinessException("Service duration must be greater than zero.");
 
-            if (request.DurationMinutes > 480)
-                throw new BusinessException("Service duration cannot exceed 480 minutes.");
+            if (request.DurationMinutes > 1000)
+                throw new BusinessException("Service duration cannot exceed 1000 minutes.");
 
             var exists = await _context.Services
                 .AnyAsync(x => x.Name == request.Name);
@@ -109,11 +112,14 @@ namespace BarberMe.Services.Services
             if (request.Price <= 0)
                 throw new BusinessException("Service price must be greater than zero.");
 
+            if (request.Price > 10000)
+                throw new BusinessException("Service price cannot exceed 10000.");
+
             if (request.DurationMinutes <= 0)
                 throw new BusinessException("Service duration must be greater than zero.");
 
-            if (request.DurationMinutes > 480)
-                throw new BusinessException("Service duration cannot exceed 480 minutes.");
+            if (request.DurationMinutes > 1000)
+                throw new BusinessException("Service duration cannot exceed 1000 minutes.");
 
             var entity = await _context.Services.FindAsync(id);
 

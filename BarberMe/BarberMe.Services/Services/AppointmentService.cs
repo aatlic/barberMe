@@ -138,10 +138,18 @@ namespace BarberMe.Services.Services
                 throw new BusinessException("Appointment date must be in the future.");
 
             var barberService = await _context.BarberServices
+                .Include(x => x.Barber)
+                .Include(x => x.Service)
                 .FirstOrDefaultAsync(x => x.BarberServiceId == request.BarberServiceId);
 
             if (barberService == null)
                 throw new NotFoundException("Barber service does not exist.");
+
+            if (!barberService.Barber.IsActive)
+                throw new BusinessException("Selected barber is not active.");
+
+            if (!barberService.Service.IsActive)
+                throw new BusinessException("Selected service is not active.");
 
             var clientExists = await _context.Users
                 .AnyAsync(x => x.UserId == request.ClientId && x.IsActive);
@@ -156,9 +164,14 @@ namespace BarberMe.Services.Services
             entity.AppointmentStatusId = (int)Model.Enum.AppointmentStatusType.Pending;
             entity.IsPaid = false;
 
+            await ValidateBarberWorkingHours(
+                entity.BarberId,
+                entity.StartDateTime,
+                entity.EndDateTime);
+
             var isTaken = await _context.Appointments.AnyAsync(x =>
                 x.BarberId == entity.BarberId &&
-                x.CancelledAt == null &&
+                x.AppointmentStatusId != (int)Model.Enum.AppointmentStatusType.Cancelled &&
                 request.StartDateTime < x.EndDateTime &&
                 entity.EndDateTime > x.StartDateTime);
 
@@ -166,23 +179,6 @@ namespace BarberMe.Services.Services
                 throw new BusinessException("Selected appointment time is already taken.");
 
             _context.Appointments.Add(entity);
-            await _context.SaveChangesAsync();
-
-            return _mapper.Map<AppointmentResponse>(entity);
-        }
-
-        public async Task<AppointmentResponse?> UpdateAsync(int id, AppointmentUpdateRequest request)
-        {
-            var entity = await _context.Appointments
-                .FirstOrDefaultAsync(x => x.AppointmentId == id);
-
-            if (entity == null)
-                throw new NotFoundException("Appointment does not exist.");
-
-            ValidateAppointmentManagementAccess(entity);
-
-            _mapper.Map(request, entity);
-
             await _context.SaveChangesAsync();
 
             return _mapper.Map<AppointmentResponse>(entity);
@@ -203,56 +199,61 @@ namespace BarberMe.Services.Services
 
             var dayOfWeek = (int)date.DayOfWeek;
 
-            var workingHours = await _context.WorkingHours
-                .FirstOrDefaultAsync(x =>
+            var workingHoursList = await _context.WorkingHours
+                .Where(x =>
                     x.BarberId == barberId &&
                     x.DayOfWeek == dayOfWeek &&
-                    x.IsWorking);
+                    x.IsWorking)
+                .OrderBy(x => x.StartTime)
+                .ToListAsync();
 
-            if (workingHours == null)
+            if (!workingHoursList.Any())
                 return new List<AvailableSlotResponse>();
 
-            var startDateTime = date.ToDateTime(
-                TimeOnly.FromTimeSpan(workingHours.StartTime));
-
-            var endDateTime = date.ToDateTime(
-                TimeOnly.FromTimeSpan(workingHours.EndTime));
+            var dayStart = date.ToDateTime(TimeOnly.MinValue);
+            var dayEnd = date.ToDateTime(TimeOnly.MaxValue);
 
             var existingAppointments = await _context.Appointments
                 .Where(x =>
                     x.BarberId == barberId &&
-                    x.StartDateTime.Date == startDateTime.Date &&
-                    x.CancelledAt == null)
+                    x.StartDateTime >= dayStart &&
+                    x.StartDateTime <= dayEnd &&
+                    x.AppointmentStatusId != (int)Model.Enum.AppointmentStatusType.Cancelled)
                 .ToListAsync();
 
             var slots = new List<AvailableSlotResponse>();
 
-            var current = startDateTime;
-
-            while (current.AddMinutes(barberService.DurationMinutes) <= endDateTime)
+            foreach (var workingHours in workingHoursList)
             {
-                var slotEnd = current.AddMinutes(barberService.DurationMinutes);
+                var startDateTime = date.ToDateTime(TimeOnly.FromTimeSpan(workingHours.StartTime));
+                var endDateTime = date.ToDateTime(TimeOnly.FromTimeSpan(workingHours.EndTime));
 
-                var isTaken = existingAppointments.Any(x =>
-                    current < x.EndDateTime &&
-                    slotEnd > x.StartDateTime);
+                var current = startDateTime;
 
-                if (!isTaken)
+                while (current.AddMinutes(barberService.DurationMinutes) <= endDateTime)
                 {
-                    slots.Add(new AvailableSlotResponse
-                    {
-                        StartDateTime = current,
-                        EndDateTime = slotEnd
-                    });
-                }
+                    var slotEnd = current.AddMinutes(barberService.DurationMinutes);
 
-                current = current.AddMinutes(barberService.DurationMinutes);
+                    var isTaken = existingAppointments.Any(x =>
+                        IsOverlapping(current, slotEnd, x.StartDateTime, x.EndDateTime));
+
+                    if (!isTaken && current > DateTime.UtcNow)
+                    {
+                        slots.Add(new AvailableSlotResponse
+                        {
+                            StartDateTime = current,
+                            EndDateTime = slotEnd
+                        });
+                    }
+
+                    current = current.AddMinutes(barberService.DurationMinutes);
+                }
             }
 
             return slots;
         }
 
-        public async Task CancelAppointment(int id, AppointmentUpdateRequest request)
+        public async Task CancelAppointment(int id, CancelAppointmentRequest request)
         {
             var entity = await _context.Appointments
                 .FirstOrDefaultAsync(x => x.AppointmentId == id);
@@ -262,14 +263,22 @@ namespace BarberMe.Services.Services
 
             ValidateAppointmentAccess(entity);
 
-            if (entity.CancelledAt != null)
+            if (entity.AppointmentStatusId == (int)Model.Enum.AppointmentStatusType.Cancelled)
                 throw new BusinessException("Appointment is already cancelled.");
 
-            if (entity.CompletedAt != null)
+            if (entity.AppointmentStatusId == (int)Model.Enum.AppointmentStatusType.Completed)
                 throw new BusinessException("Completed appointment cannot be cancelled.");
 
+            if (entity.StartDateTime <= DateTime.UtcNow)
+                throw new BusinessException("Appointment cannot be cancelled after it has started.");
+
+            if (string.IsNullOrWhiteSpace(request.CancellationReason))
+                throw new BusinessException("Cancellation reason is required.");
+
+            entity.AppointmentStatusId = (int)Model.Enum.AppointmentStatusType.Cancelled;
             entity.CancelledAt = DateTime.UtcNow;
-            _mapper.Map(request, entity);
+            entity.CancelledById = _currentUserService.UserId;
+            entity.CancellationReason = request.CancellationReason;
 
             await _context.SaveChangesAsync();
         }
@@ -284,13 +293,38 @@ namespace BarberMe.Services.Services
 
             ValidateAppointmentManagementAccess(entity);
 
-            if (entity.CancelledAt != null)
-                throw new BusinessException("Cancelled appointment cannot be confirmed.");
+            if (entity.AppointmentStatusId != (int)Model.Enum.AppointmentStatusType.Pending)
+                throw new BusinessException("Only pending appointments can be confirmed.");
 
-            if (entity.ConfirmedAt != null)
-                throw new BusinessException("Appointment is already confirmed.");
+            if (entity.StartDateTime <= DateTime.UtcNow)
+                throw new BusinessException("Past appointments cannot be confirmed.");
 
+            entity.AppointmentStatusId = (int)Model.Enum.AppointmentStatusType.Confirmed;
             entity.ConfirmedAt = DateTime.UtcNow;
+            entity.ConfirmedById = _currentUserService.UserId;
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task CompleteAppointment(int id)
+        {
+            var entity = await _context.Appointments
+                .FirstOrDefaultAsync(x => x.AppointmentId == id);
+
+            if (entity == null)
+                throw new NotFoundException("Appointment does not exist.");
+
+            ValidateAppointmentManagementAccess(entity);
+
+            if (entity.AppointmentStatusId != (int)Model.Enum.AppointmentStatusType.Confirmed)
+                throw new BusinessException("Only confirmed appointments can be completed.");
+
+            if (entity.EndDateTime > DateTime.UtcNow)
+                throw new BusinessException("Appointment cannot be completed before it ends.");
+
+            entity.AppointmentStatusId = (int)Model.Enum.AppointmentStatusType.Completed;
+            entity.CompletedAt = DateTime.UtcNow;
+            entity.CompletedById = _currentUserService.UserId;
 
             await _context.SaveChangesAsync();
         }
@@ -321,6 +355,28 @@ namespace BarberMe.Services.Services
                 return;
 
             throw new UnauthorizedException("You are not allowed to manage this appointment.");
+        }
+
+        private static bool IsOverlapping(DateTime start, DateTime end, DateTime existingStart, DateTime existingEnd)
+        {
+            return start < existingEnd && end > existingStart;
+        }
+
+        private async Task ValidateBarberWorkingHours(int barberId, DateTime startDateTime, DateTime endDateTime)
+        {
+            var dayOfWeek = (int)startDateTime.DayOfWeek;
+            var startTime = startDateTime.TimeOfDay;
+            var endTime = endDateTime.TimeOfDay;
+
+            var isWithinWorkingHours = await _context.WorkingHours.AnyAsync(x =>
+                x.BarberId == barberId &&
+                x.DayOfWeek == dayOfWeek &&
+                x.IsWorking &&
+                x.StartTime <= startTime &&
+                x.EndTime >= endTime);
+
+            if (!isWithinWorkingHours)
+                throw new BusinessException("Barber is not working at the selected time.");
         }
     }
 }

@@ -96,26 +96,100 @@ namespace BarberMe.Services.Services
 
         public async Task<UserResponse> InsertAsync(UserInsertRequest request)
         {
+            var usernameExists = await _context.Users
+                .AnyAsync(x => x.Username == request.Username);
+
+            if (usernameExists)
+                throw new BusinessException("Username already exists.");
+
+            var emailExists = await _context.Users
+                .AnyAsync(x => x.Email == request.Email);
+
+            if (emailExists)
+                throw new BusinessException("Email already exists.");
+
+            var role = await _context.Roles
+                .FirstOrDefaultAsync(x => x.RoleId == request.RoleId);
+
+            if (role == null)
+                throw new NotFoundException("Role does not exist.");
+
+            if (role.Name == Roles.Barber)
+            {
+                if (!request.BarberLevelId.HasValue)
+                    throw new BusinessException("Barber level is required for barber users.");
+
+                var barberLevelExists = await _context.BarberLevels
+                    .AnyAsync(x => x.BarberLevelId == request.BarberLevelId.Value);
+
+                if (!barberLevelExists)
+                    throw new NotFoundException("Barber level does not exist.");
+            }
+            else
+            {
+                request.BarberLevelId = null;
+            }
+
             var entity = _mapper.Map<User>(request);
+
+            entity.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            entity.IsActive = true;
+            entity.FailedLoginAttempts = 0;
+            entity.IsLocked = false;
+            entity.LockedUntil = null;
 
             _context.Users.Add(entity);
             await _context.SaveChangesAsync();
 
-            return _mapper.Map<UserResponse>(entity);
+            var user = await _context.Users
+                .Include(x => x.Role)
+                .Include(x => x.BarberLevel)
+                .FirstAsync(x => x.UserId == entity.UserId);
+
+            return _mapper.Map<UserResponse>(user);
         }
 
         public async Task<UserResponse?> UpdateAsync(int id, UserUpdateRequest request)
         {
-            var entity = await _context.Users.FindAsync(id);
+            var entity = await _context.Users
+                .Include(x => x.Role)
+                .FirstOrDefaultAsync(x => x.UserId == id);
 
             if (entity == null)
                 throw new NotFoundException("User does not exist.");
+
+            var emailExists = await _context.Users
+                .AnyAsync(x => x.UserId != id && x.Email == request.Email);
+
+            if (emailExists)
+                throw new BusinessException("Email already exists.");
+
+            if (entity.Role.Name == Roles.Barber)
+            {
+                if (!request.BarberLevelId.HasValue)
+                    throw new BusinessException("Barber level is required for barber users.");
+
+                var barberLevelExists = await _context.BarberLevels
+                    .AnyAsync(x => x.BarberLevelId == request.BarberLevelId.Value);
+
+                if (!barberLevelExists)
+                    throw new NotFoundException("Barber level does not exist.");
+            }
+            else
+            {
+                request.BarberLevelId = null;
+            }
 
             _mapper.Map(request, entity);
 
             await _context.SaveChangesAsync();
 
-            return _mapper.Map<UserResponse>(entity);
+            var user = await _context.Users
+                .Include(x => x.Role)
+                .Include(x => x.BarberLevel)
+                .FirstAsync(x => x.UserId == id);
+
+            return _mapper.Map<UserResponse>(user);
         }
 
         public async Task<bool> DeleteAsync(int id)
@@ -260,6 +334,16 @@ namespace BarberMe.Services.Services
 
             if (user == null)
                 throw new NotFoundException("User does not exist.");
+
+            if (user == null)
+                throw new NotFoundException("User does not exist.");
+
+            var oldPasswordValid = BCrypt.Net.BCrypt.Verify(
+                request.OldPassword,
+                user.PasswordHash);
+
+            if (!oldPasswordValid)
+                throw new BusinessException("Current password is incorrect.");
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
             user.RequirePasswordChange = false;

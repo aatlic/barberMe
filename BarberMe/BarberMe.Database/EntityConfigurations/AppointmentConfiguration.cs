@@ -44,6 +44,11 @@ namespace BarberMe.Database.EntityConfigurations
                 .HasForeignKey(x => x.CancelledById)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasOne(x => x.CompletedBy)
+                .WithMany()
+                .HasForeignKey(x => x.CompletedById)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.HasIndex(x => new { x.BarberId, x.StartDateTime, x.EndDateTime });
         }
     }
