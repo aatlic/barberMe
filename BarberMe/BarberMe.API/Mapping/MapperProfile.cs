@@ -83,7 +83,7 @@ namespace BarberMe.API.Mapping
             CreateMap<WorkingHoursUpdateRequest, WorkingHours>();
 
             CreateMap<AppointmentInsertRequest, Appointment>();
-            CreateMap<AppointmentUpdateRequest, Appointment>();
+            CreateMap<CancelAppointmentRequest, Appointment>();
 
             CreateMap<BarberLevelInsertRequest, BarberLevel>();
             CreateMap<BarberLevelUpdateRequest, BarberLevel>();

@@ -33,10 +33,10 @@ namespace BarberMe.Services.Services
                 .AsQueryable();
 
             if (search.BarberId.HasValue)
-                query = query.Where(x => x.BarberId == search.BarberId);
+                query = query.Where(x => x.BarberId == search.BarberId.Value);
 
             if (search.ServiceId.HasValue)
-                query = query.Where(x => x.ServiceId == search.ServiceId);
+                query = query.Where(x => x.ServiceId == search.ServiceId.Value);
 
             var totalCount = await query.CountAsync();
 
@@ -127,6 +127,12 @@ namespace BarberMe.Services.Services
         {
             if (request.Price <= 0)
                 throw new BusinessException("Price must be greater than zero.");
+
+            if (request.Price > 10000)
+                throw new BusinessException("Price must not exceed 10000.");
+
+            if (request.DurationMinutes > 1000)
+                throw new BusinessException("Duration must not exceed 1000 minutes.");
 
             if (request.DurationMinutes <= 0)
                 throw new BusinessException("Duration must be greater than zero.");

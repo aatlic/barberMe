@@ -35,6 +35,8 @@
         public string? CancellationReason { get; set; }
 
         public DateTime? CompletedAt { get; set; }
+        public int? CompletedById { get; set; }
+        public User? CompletedBy { get; set; }
 
         public Review? Review { get; set; }
         public Payment? Payment { get; set; }

@@ -119,7 +119,7 @@ namespace BarberMe.Services.Services
                 throw new UnauthorizedException("You are not allowed to review this appointment.");
             }
 
-            if (appointment.CompletedAt == null)
+            if (appointment.AppointmentStatusId != (int)BarberMe.Model.Enum.AppointmentStatusType.Completed)
                 throw new BusinessException("You can review only completed appointments.");
 
             var reviewExists = await _context.Reviews
