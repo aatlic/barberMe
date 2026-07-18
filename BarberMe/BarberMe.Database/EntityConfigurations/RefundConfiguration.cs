@@ -24,6 +24,13 @@ namespace BarberMe.Database.EntityConfigurations
                 .WithMany(x => x.Refunds)
                 .HasForeignKey(x => x.PaymentId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_Refund_Amount",
+                    "[Amount] > 0");
+            });
         }
     }
 }

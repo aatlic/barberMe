@@ -20,6 +20,20 @@ namespace BarberMe.Database.EntityConfigurations
             builder.Property(x => x.DefaultDurationMinutes)
                 .IsRequired();
 
+            builder.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_Service_DefaultPrice",
+                    "[DefaultPrice] > 0");
+
+                table.HasCheckConstraint(
+                    "CK_Service_DefaultDurationMinutes",
+                    "[DefaultDurationMinutes] > 0");
+            });
+
+            builder.HasIndex(x => x.Name)
+                .IsUnique();
+
             builder.HasData(
                 new Service
                 {

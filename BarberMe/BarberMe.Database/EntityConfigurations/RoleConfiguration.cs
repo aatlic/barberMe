@@ -13,6 +13,8 @@ namespace BarberMe.Database.EntityConfigurations
                 .IsRequired()
                 .HasMaxLength(30);
 
+            builder.HasIndex(x => x.Name).IsUnique();
+
             builder.HasData(
                 new Role { RoleId = 1, Name = "Admin" },
                 new Role { RoleId = 2, Name = "Barber" },

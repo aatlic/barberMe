@@ -2,7 +2,7 @@
 
 namespace BarberMe.Model.Requests.User
 {
-    public class UserInsertRequest
+    public class CopyEmployeeRequest
     {
         [Required(ErrorMessage = "First name is required.")]
         [StringLength(
@@ -46,11 +46,8 @@ namespace BarberMe.Model.Requests.User
             ErrorMessage = "Password must be at least 8 characters long.")]
         public string Password { get; set; } = null!;
 
-        [Range(1, int.MaxValue, ErrorMessage = "Role is required.")]
-        public int RoleId { get; set; }
-
-        public int? BarberLevelId { get; set; }
-
         public bool RequirePasswordChange { get; set; } = true;
+
+        public bool CopyServices { get; set; }
     }
 }

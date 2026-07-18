@@ -14,6 +14,9 @@ namespace BarberMe.Database.EntityConfigurations
                 .IsRequired()
                 .HasMaxLength(50);
 
+            builder.HasIndex(x => x.Name)
+                .IsUnique();
+
             builder.HasData(
                 new NotificationType { NotificationTypeId = 1, Name = "Reservation" },
                 new NotificationType { NotificationTypeId = 2, Name = "Reminder" },

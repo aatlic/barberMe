@@ -4,6 +4,7 @@ using BarberMe.Database.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BarberMe.Database.Migrations
 {
     [DbContext(typeof(BarberMeDbContext))]
-    partial class BarberMeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260711204825_AddTemporaryPasswordExpiration")]
+    partial class AddTemporaryPasswordExpiration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -113,9 +116,6 @@ namespace BarberMe.Database.Migrations
 
                     b.HasKey("AppointmentStatusId");
 
-                    b.HasIndex("Name")
-                        .IsUnique();
-
                     b.ToTable("AppointmentStatuses");
 
                     b.HasData(
@@ -158,9 +158,6 @@ namespace BarberMe.Database.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.HasKey("BarberLevelId");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
 
                     b.ToTable("BarberLevels");
 
@@ -215,12 +212,7 @@ namespace BarberMe.Database.Migrations
                     b.HasIndex("BarberId", "ServiceId")
                         .IsUnique();
 
-                    b.ToTable("BarberServices", t =>
-                        {
-                            t.HasCheckConstraint("CK_BarberService_DurationMinutes", "[DurationMinutes] > 0");
-
-                            t.HasCheckConstraint("CK_BarberService_Price", "[Price] > 0");
-                        });
+                    b.ToTable("BarberServices");
 
                     b.HasData(
                         new
@@ -350,9 +342,6 @@ namespace BarberMe.Database.Migrations
 
                     b.HasKey("NotificationTypeId");
 
-                    b.HasIndex("Name")
-                        .IsUnique();
-
                     b.ToTable("NotificationTypes");
 
                     b.HasData(
@@ -417,10 +406,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasIndex("PaymentStatusId");
 
-                    b.ToTable("Payments", t =>
-                        {
-                            t.HasCheckConstraint("CK_Payment_Amount", "[Amount] > 0");
-                        });
+                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("BarberMe.Database.Models.PaymentStatus", b =>
@@ -437,9 +423,6 @@ namespace BarberMe.Database.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.HasKey("PaymentStatusId");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
 
                     b.ToTable("PaymentStatuses");
 
@@ -528,10 +511,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasIndex("RecommendationId");
 
-                    b.ToTable("RecommendationFeedbacks", t =>
-                        {
-                            t.HasCheckConstraint("CK_RecommendationFeedback_Rating", "[Rating] BETWEEN 1 AND 5");
-                        });
+                    b.ToTable("RecommendationFeedbacks");
                 });
 
             modelBuilder.Entity("BarberMe.Database.Models.Refund", b =>
@@ -563,10 +543,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasIndex("PaymentId");
 
-                    b.ToTable("Refunds", t =>
-                        {
-                            t.HasCheckConstraint("CK_Refund_Amount", "[Amount] > 0");
-                        });
+                    b.ToTable("Refunds");
                 });
 
             modelBuilder.Entity("BarberMe.Database.Models.Review", b =>
@@ -605,10 +582,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.ToTable("Reviews", t =>
-                        {
-                            t.HasCheckConstraint("CK_Review_Rating", "[Rating] BETWEEN 1 AND 5");
-                        });
+                    b.ToTable("Reviews");
                 });
 
             modelBuilder.Entity("BarberMe.Database.Models.Role", b =>
@@ -628,9 +602,6 @@ namespace BarberMe.Database.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.HasKey("RoleId");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
 
                     b.ToTable("Roles");
 
@@ -686,15 +657,7 @@ namespace BarberMe.Database.Migrations
 
                     b.HasKey("ServiceId");
 
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Services", t =>
-                        {
-                            t.HasCheckConstraint("CK_Service_DefaultDurationMinutes", "[DefaultDurationMinutes] > 0");
-
-                            t.HasCheckConstraint("CK_Service_DefaultPrice", "[DefaultPrice] > 0");
-                        });
+                    b.ToTable("Services");
 
                     b.HasData(
                         new

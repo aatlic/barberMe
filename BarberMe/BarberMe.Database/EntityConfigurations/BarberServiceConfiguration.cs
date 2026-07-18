@@ -29,6 +29,17 @@ namespace BarberMe.Database.EntityConfigurations
 
             builder.HasIndex(x => new { x.BarberId, x.ServiceId }).IsUnique();
 
+            builder.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_BarberService_Price",
+                    "[Price] > 0");
+
+                table.HasCheckConstraint(
+                    "CK_BarberService_DurationMinutes",
+                    "[DurationMinutes] > 0");
+            });
+
             builder.HasData(
 
                 new BarberService

@@ -14,6 +14,9 @@ namespace BarberMe.Database.EntityConfigurations
                 .IsRequired()
                 .HasMaxLength(30);
 
+            builder.HasIndex(x => x.Name)
+                .IsUnique();
+
             builder.HasData(
                 new PaymentStatus { PaymentStatusId = 1, Name = "Pending" },
                 new PaymentStatus { PaymentStatusId = 2, Name = "Completed" },

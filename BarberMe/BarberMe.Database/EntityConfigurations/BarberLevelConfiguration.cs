@@ -13,6 +13,9 @@ namespace BarberMe.Database.EntityConfigurations
             builder.Property(x => x.Name)
                 .IsRequired()
                 .HasMaxLength(30);
+            
+            builder.HasIndex(x => x.Name)
+                .IsUnique();
 
             builder.HasData(
                 new BarberLevel { BarberLevelId = 1, Name = "Junior" },

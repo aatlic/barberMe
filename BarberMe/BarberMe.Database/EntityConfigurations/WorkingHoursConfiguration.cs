@@ -106,7 +106,7 @@ namespace BarberMe.Database.EntityConfigurations
                     WorkingHoursId = 7,
                     BarberId = 2,
 
-                    DayOfWeek = 7,
+                    DayOfWeek = 0,
 
                     StartTime = new TimeSpan(0, 0, 0),
                     EndTime = new TimeSpan(0, 0, 0),
