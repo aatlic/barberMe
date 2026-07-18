@@ -28,6 +28,8 @@
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        public DateTime? TemporaryPasswordExpiresAt { get; set; }
+
 
         public ICollection<BarberService> BarberServices { get; set; } = new List<BarberService>();
         public ICollection<WorkingHours> WorkingHours { get; set; } = new List<WorkingHours>();

@@ -84,7 +84,7 @@ namespace BarberMe.Services.Services
             if (request.DayOfWeek < 0 || request.DayOfWeek > 6)
                 throw new BusinessException("Day of week must be between 0 and 6.");
 
-            if (request.StartTime >= request.EndTime)
+            if (request.IsWorking && request.StartTime >= request.EndTime)
                 throw new BusinessException("Start time must be before end time.");
 
             var barberExists = await _context.Users
@@ -92,6 +92,12 @@ namespace BarberMe.Services.Services
 
             if (!barberExists)
                 throw new NotFoundException("Barber does not exist.");
+
+            if (!request.IsWorking)
+            {
+                request.StartTime = TimeSpan.Zero;
+                request.EndTime = TimeSpan.Zero;
+            }
 
             var overlaps = await _context.WorkingHours.AnyAsync(x =>
                 x.BarberId == request.BarberId &&
@@ -119,8 +125,14 @@ namespace BarberMe.Services.Services
             if (entity == null)
                 throw new NotFoundException("Working hours do not exist.");
 
-            if (request.StartTime >= request.EndTime)
+            if (request.IsWorking && request.StartTime >= request.EndTime)
                 throw new BusinessException("Start time must be before end time.");
+
+            if (!request.IsWorking)
+            {
+                request.StartTime = TimeSpan.Zero;
+                request.EndTime = TimeSpan.Zero;
+            }
 
             var overlaps = await _context.WorkingHours.AnyAsync(x =>
                 x.WorkingHoursId != id &&

@@ -2,7 +2,7 @@
 
 namespace BarberMe.Model.Requests.User
 {
-    public class UserInsertRequest
+    public class UserProfileUpdateRequest
     {
         [Required(ErrorMessage = "First name is required.")]
         [StringLength(
@@ -18,13 +18,6 @@ namespace BarberMe.Model.Requests.User
             ErrorMessage = "Last name must be between 2 and 50 characters.")]
         public string LastName { get; set; } = null!;
 
-        [Required(ErrorMessage = "Username is required.")]
-        [StringLength(
-            50,
-            MinimumLength = 3,
-            ErrorMessage = "Username must be between 3 and 50 characters.")]
-        public string Username { get; set; } = null!;
-
         [Required(ErrorMessage = "Email is required.")]
         [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
         [StringLength(
@@ -38,19 +31,5 @@ namespace BarberMe.Model.Requests.User
             30,
             ErrorMessage = "Phone number must not exceed 30 characters.")]
         public string PhoneNumber { get; set; } = null!;
-
-        [Required(ErrorMessage = "Password is required.")]
-        [StringLength(
-            100,
-            MinimumLength = 8,
-            ErrorMessage = "Password must be at least 8 characters long.")]
-        public string Password { get; set; } = null!;
-
-        [Range(1, int.MaxValue, ErrorMessage = "Role is required.")]
-        public int RoleId { get; set; }
-
-        public int? BarberLevelId { get; set; }
-
-        public bool RequirePasswordChange { get; set; } = true;
     }
 }

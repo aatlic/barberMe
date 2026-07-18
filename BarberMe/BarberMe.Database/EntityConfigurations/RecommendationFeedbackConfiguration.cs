@@ -20,6 +20,13 @@ namespace BarberMe.Database.EntityConfigurations
                 .WithMany(x => x.Feedbacks)
                 .HasForeignKey(x => x.RecommendationId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.ToTable(table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_RecommendationFeedback_Rating",
+                    "[Rating] BETWEEN 1 AND 5");
+            });
         }
     }
 }

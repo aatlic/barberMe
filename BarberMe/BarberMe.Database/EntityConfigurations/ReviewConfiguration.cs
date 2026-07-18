@@ -11,6 +11,14 @@ namespace BarberMe.Database.EntityConfigurations
             builder.HasKey(x => x.ReviewId);
 
             builder.Property(x => x.Rating).IsRequired();
+
+            builder.ToTable(t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_Review_Rating",
+                    "[Rating] BETWEEN 1 AND 5");
+            });
+
             builder.Property(x => x.Comment).HasMaxLength(500);
 
             builder.HasOne(x => x.Appointment)

@@ -14,6 +14,9 @@ namespace BarberMe.Database.EntityConfigurations
                 .IsRequired()
                 .HasMaxLength(30);
 
+            builder.HasIndex(x => x.Name)
+                .IsUnique();
+
             builder.HasData(
                 new AppointmentStatus { AppointmentStatusId = 1, Name = "Pending" },
                 new AppointmentStatus { AppointmentStatusId = 2, Name = "Confirmed" },

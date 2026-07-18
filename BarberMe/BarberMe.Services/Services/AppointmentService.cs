@@ -122,46 +122,68 @@ namespace BarberMe.Services.Services
 
         public async Task<AppointmentResponse> InsertAsync(AppointmentInsertRequest request)
         {
+            var clientId = request.ClientId;
+
             if (_currentUserService.Role == Roles.Client)
             {
-                request.ClientId = _currentUserService.UserId;
+                clientId = _currentUserService.UserId;
             }
-            else if (request.ClientId <= 0)
+            else if (clientId <= 0)
             {
                 throw new BusinessException("Client is required.");
             }
 
             if (request.BarberServiceId <= 0)
+            {
                 throw new BusinessException("Barber service is required.");
+            }
 
             if (request.StartDateTime <= DateTime.UtcNow)
+            {
                 throw new BusinessException("Appointment date must be in the future.");
+            }
 
             var barberService = await _context.BarberServices
                 .Include(x => x.Barber)
                 .Include(x => x.Service)
-                .FirstOrDefaultAsync(x => x.BarberServiceId == request.BarberServiceId);
+                .FirstOrDefaultAsync(x =>
+                    x.BarberServiceId == request.BarberServiceId);
 
             if (barberService == null)
+            {
                 throw new NotFoundException("Barber service does not exist.");
+            }
 
             if (!barberService.Barber.IsActive)
+            {
                 throw new BusinessException("Selected barber is not active.");
+            }
 
             if (!barberService.Service.IsActive)
+            {
                 throw new BusinessException("Selected service is not active.");
+            }
 
             var clientExists = await _context.Users
-                .AnyAsync(x => x.UserId == request.ClientId && x.IsActive);
+                .Include(x => x.Role)
+                .AnyAsync(x =>
+                    x.UserId == clientId &&
+                    x.IsActive &&
+                    x.Role.Name == Roles.Client);
 
             if (!clientExists)
-                throw new NotFoundException("Client does not exist.");
+            {
+                throw new NotFoundException("Active client does not exist.");
+            }
 
             var entity = _mapper.Map<Appointment>(request);
 
+            entity.ClientId = clientId;
             entity.BarberId = barberService.BarberId;
-            entity.EndDateTime = request.StartDateTime.AddMinutes(barberService.DurationMinutes);
-            entity.AppointmentStatusId = (int)Model.Enum.AppointmentStatusType.Pending;
+            entity.EndDateTime = request.StartDateTime
+                .AddMinutes(barberService.DurationMinutes);
+            entity.AppointmentStatusId =
+                (int)Model.Enum.AppointmentStatusType.Pending;
             entity.IsPaid = false;
 
             await ValidateBarberWorkingHours(
@@ -169,19 +191,34 @@ namespace BarberMe.Services.Services
                 entity.StartDateTime,
                 entity.EndDateTime);
 
-            var isTaken = await _context.Appointments.AnyAsync(x =>
-                x.BarberId == entity.BarberId &&
-                x.AppointmentStatusId != (int)Model.Enum.AppointmentStatusType.Cancelled &&
-                request.StartDateTime < x.EndDateTime &&
-                entity.EndDateTime > x.StartDateTime);
+            var isTaken = await _context.Appointments
+                .AnyAsync(x =>
+                    x.BarberId == entity.BarberId &&
+                    x.AppointmentStatusId !=
+                        (int)Model.Enum.AppointmentStatusType.Cancelled &&
+                    entity.StartDateTime < x.EndDateTime &&
+                    entity.EndDateTime > x.StartDateTime);
 
             if (isTaken)
+            {
                 throw new BusinessException("Selected appointment time is already taken.");
+            }
 
             _context.Appointments.Add(entity);
             await _context.SaveChangesAsync();
 
-            return _mapper.Map<AppointmentResponse>(entity);
+            var createdAppointment = await _context.Appointments
+                .AsNoTracking()
+                .Include(x => x.Client)
+                .Include(x => x.Barber)
+                .Include(x => x.BarberService)
+                    .ThenInclude(x => x.Service)
+                .Include(x => x.AppointmentStatus)
+                .FirstAsync(x =>
+                    x.AppointmentId == entity.AppointmentId);
+
+            return _mapper.Map<AppointmentResponse>(
+                createdAppointment);
         }
 
         public async Task<List<AvailableSlotResponse>> GetAvailableSlots(
@@ -190,12 +227,18 @@ namespace BarberMe.Services.Services
             DateOnly date)
         {
             var barberService = await _context.BarberServices
+                .Include(x => x.Barber)
+                .Include(x => x.Service)
                 .FirstOrDefaultAsync(x =>
                     x.BarberId == barberId &&
                     x.ServiceId == serviceId);
 
-            if (barberService == null)
+            if (barberService == null ||
+                !barberService.Barber.IsActive ||
+                !barberService.Service.IsActive)
+            {
                 return new List<AvailableSlotResponse>();
+            }
 
             var dayOfWeek = (int)date.DayOfWeek;
 
@@ -275,10 +318,15 @@ namespace BarberMe.Services.Services
             if (string.IsNullOrWhiteSpace(request.CancellationReason))
                 throw new BusinessException("Cancellation reason is required.");
 
+            if (entity.IsPaid)
+            {
+                throw new BusinessException("A paid appointment cannot be cancelled before its refund is processed.");
+            }
+
             entity.AppointmentStatusId = (int)Model.Enum.AppointmentStatusType.Cancelled;
             entity.CancelledAt = DateTime.UtcNow;
             entity.CancelledById = _currentUserService.UserId;
-            entity.CancellationReason = request.CancellationReason;
+            entity.CancellationReason = request.CancellationReason.Trim();
 
             await _context.SaveChangesAsync();
         }
@@ -300,8 +348,13 @@ namespace BarberMe.Services.Services
                 throw new BusinessException("Past appointments cannot be confirmed.");
 
             entity.AppointmentStatusId = (int)Model.Enum.AppointmentStatusType.Confirmed;
+
             entity.ConfirmedAt = DateTime.UtcNow;
             entity.ConfirmedById = _currentUserService.UserId;
+
+            entity.CancelledAt = null;
+            entity.CancelledById = null;
+            entity.CancellationReason = null;
 
             await _context.SaveChangesAsync();
         }
