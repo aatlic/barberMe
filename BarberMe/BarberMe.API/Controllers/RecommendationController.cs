@@ -9,7 +9,7 @@ namespace BarberMe.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = $"{Roles.Client},{Roles.Admin}")]
+    [Authorize(Roles = Roles.Client)]
     public class RecommendationController : ControllerBase
     {
         private readonly IRecommendationService _service;
@@ -20,22 +20,25 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<RecommendationResponse>>> GetRecommendations()
+        public async Task<ActionResult<List<RecommendationResponse>>>
+            GetRecommendations()
         {
-            var result = await _service.GetRecommendations();
+            var result = await _service.GetRecommendationsAsync();
+
             return Ok(result);
         }
 
-        [HttpPost("{recommendationId}/feedback")]
-        public async Task<IActionResult> AddFeedback(
-            int recommendationId,
-            RecommendationFeedbackInsertRequest request)
+        [HttpPost("{recommendationId:int}/feedback")]
+        public async Task<ActionResult<RecommendationFeedbackResponse>>
+            AddFeedback(
+                int recommendationId,
+                [FromBody] RecommendationFeedbackInsertRequest request)
         {
-            await _service.AddFeedback(
+            var result = await _service.AddFeedbackAsync(
                 recommendationId,
                 request);
 
-            return Ok();
+            return Ok(result);
         }
     }
 }
