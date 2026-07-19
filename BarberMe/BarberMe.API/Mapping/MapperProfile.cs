@@ -65,7 +65,7 @@ namespace BarberMe.API.Mapping
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.NewsId));
 
             CreateMap<Recommendation, RecommendationResponse>()
-                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.RecommendationId));
+                .ForMember(dest => dest.RecommendationId, opt => opt.MapFrom(src => src.RecommendationId));
 
             CreateMap<RecommendationFeedback, RecommendationFeedbackResponse>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.RecommendationFeedbackId));

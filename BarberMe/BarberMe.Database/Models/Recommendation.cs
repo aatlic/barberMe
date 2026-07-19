@@ -7,16 +7,18 @@
         public int UserId { get; set; }
         public User User { get; set; } = null!;
 
-        public int ServiceId { get; set; }
-        public Service Service { get; set; } = null!;
+        public int BarberServiceId { get; set; }
+        public BarberService BarberService { get; set; } = null!;
 
         public decimal Score { get; set; }
+
         public string Explanation { get; set; } = string.Empty;
 
         public bool? WasAccepted { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public ICollection<RecommendationFeedback> Feedbacks { get; set; } = new List<RecommendationFeedback>();
+        public ICollection<RecommendationFeedback> Feedbacks { get; set; }
+            = new List<RecommendationFeedback>();
     }
 }

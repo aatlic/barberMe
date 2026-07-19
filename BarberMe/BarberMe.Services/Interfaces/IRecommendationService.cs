@@ -5,8 +5,10 @@ namespace BarberMe.Services.Interfaces
 {
     public interface IRecommendationService
     {
-        Task<List<RecommendationResponse>> GetRecommendations();
+        Task<List<RecommendationResponse>> GetRecommendationsAsync();
 
-        Task AddFeedback(int recommendationId, RecommendationFeedbackInsertRequest request);
+        Task<RecommendationFeedbackResponse> AddFeedbackAsync(
+            int recommendationId,
+            RecommendationFeedbackInsertRequest request);
     }
 }

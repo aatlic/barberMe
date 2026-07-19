@@ -4,9 +4,11 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace BarberMe.Database.EntityConfigurations
 {
-    public class RecommendationFeedbackConfiguration : IEntityTypeConfiguration<RecommendationFeedback>
+    public class RecommendationFeedbackConfiguration :
+        IEntityTypeConfiguration<RecommendationFeedback>
     {
-        public void Configure(EntityTypeBuilder<RecommendationFeedback> builder)
+        public void Configure(
+            EntityTypeBuilder<RecommendationFeedback> builder)
         {
             builder.HasKey(x => x.RecommendationFeedbackId);
 
@@ -16,10 +18,16 @@ namespace BarberMe.Database.EntityConfigurations
             builder.Property(x => x.Comment)
                 .HasMaxLength(500);
 
+            builder.Property(x => x.CreatedAt)
+                .IsRequired();
+
             builder.HasOne(x => x.Recommendation)
                 .WithMany(x => x.Feedbacks)
                 .HasForeignKey(x => x.RecommendationId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(x => x.RecommendationId)
+                .IsUnique();
 
             builder.ToTable(table =>
             {
