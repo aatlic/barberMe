@@ -1,6 +1,8 @@
+using BarberMe.API.Hubs;
 using BarberMe.API.Mapping;
 using BarberMe.API.Messaging;
 using BarberMe.API.Middleware;
+using BarberMe.API.SignalR;
 using BarberMe.Database.Context;
 using BarberMe.Model.Auth;
 using BarberMe.Model.Messaging;
@@ -94,6 +96,23 @@ builder.Services.AddAuthentication(
                     new SymmetricSecurityKey(
                         Encoding.UTF8.GetBytes(jwt.Key))
             };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    path.StartsWithSegments("/hubs/notifications"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -116,10 +135,13 @@ builder.Services.AddScoped<ISupportRequestService, SupportRequestService>();
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 builder.Services.AddScoped<IRefundService, RefundService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<INotificationHubService, NotificationHubService>();
 builder.Services.Configure<RabbitMQSettings>(
     builder.Configuration.GetSection("RabbitMQ"));
 builder.Services.AddSingleton<RabbitMQConnection>();
 builder.Services.AddSingleton<IRabbitMQPublisher, RabbitMQPublisher>();
+
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -137,5 +159,6 @@ app.UseAuthorization();
 app.UseStaticFiles();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();
