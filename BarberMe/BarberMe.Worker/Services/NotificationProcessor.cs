@@ -9,12 +9,15 @@ namespace BarberMe.Worker.Services
     {
         private readonly BarberMeDbContext _context;
         private readonly ILogger<NotificationProcessor> _logger;
+        private readonly IInternalNotificationClient _internalNotificationClient;
 
         public NotificationProcessor(
             BarberMeDbContext context,
+            IInternalNotificationClient internalNotificationClient,
             ILogger<NotificationProcessor> logger)
         {
             _context = context;
+            _internalNotificationClient = internalNotificationClient;
             _logger = logger;
         }
 
@@ -63,6 +66,10 @@ namespace BarberMe.Worker.Services
             _context.Notifications.Add(notification);
 
             await _context.SaveChangesAsync(cancellationToken);
+
+            await _internalNotificationClient.SendAsync(
+                message,
+                cancellationToken);
 
             _logger.LogInformation(
                 "Notification {NotificationId} created for user {UserId}.",
