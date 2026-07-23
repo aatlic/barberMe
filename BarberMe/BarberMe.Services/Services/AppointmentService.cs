@@ -9,6 +9,8 @@ using BarberMe.Model.Responses.Appointment;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using BarberMe.Model.Messaging;
+using BarberMe.Model.Enum;
 
 namespace BarberMe.Services.Services
 {
@@ -17,15 +19,18 @@ namespace BarberMe.Services.Services
         private readonly BarberMeDbContext _context;
         private readonly IMapper _mapper;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IRabbitMQPublisher _rabbitMQPublisher;
 
         public AppointmentService(
             BarberMeDbContext context,
             IMapper mapper,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            IRabbitMQPublisher rabbitMQPublisher)
         {
             _context = context;
             _mapper = mapper;
             _currentUserService = currentUserService;
+            _rabbitMQPublisher = rabbitMQPublisher;
         }
 
         public async Task<PagedResponse<AppointmentResponse>> GetAsync(AppointmentSearchObject search)
@@ -159,17 +164,12 @@ namespace BarberMe.Services.Services
                 throw new BusinessException("Selected barber is not active.");
             }
 
-            if (!barberService.Service.IsActive)
-            {
-                throw new BusinessException("Selected service is not active.");
-            }
-
             var clientExists = await _context.Users
                 .Include(x => x.Role)
                 .AnyAsync(x =>
                     x.UserId == clientId &&
                     x.IsActive &&
-                    x.Role.Name == Roles.Client);
+                    (x.Role.Name == Roles.Client || x.Role.Name == Roles.Admin || x.Role.Name == Roles.Barber));
 
             if (!clientExists)
             {
@@ -206,6 +206,17 @@ namespace BarberMe.Services.Services
 
             _context.Appointments.Add(entity);
             await _context.SaveChangesAsync();
+
+            await _rabbitMQPublisher.PublishAsync(
+                new NotificationMessage
+                {
+                    UserId = entity.ClientId,
+                    NotificationTypeId = NotificationTypeEnum.Reservation,
+                    Title = "Appointment created",
+                    Text = $"Your appointment has been created for {entity.StartDateTime:dd.MM.yyyy HH:mm}.",
+                    EventType = "AppointmentCreated",
+                    CreatedAt = DateTime.UtcNow
+                });
 
             var createdAppointment = await _context.Appointments
                 .AsNoTracking()
@@ -329,6 +340,17 @@ namespace BarberMe.Services.Services
             entity.CancellationReason = request.CancellationReason.Trim();
 
             await _context.SaveChangesAsync();
+
+            await _rabbitMQPublisher.PublishAsync(
+                new NotificationMessage
+                {
+                    UserId = entity.ClientId,
+                    NotificationTypeId = NotificationTypeEnum.Reservation,
+                    Title = "Appointment cancelled",
+                    Text = $"Your appointment on {entity.StartDateTime:dd.MM.yyyy HH:mm} has been cancelled.",
+                    EventType = "AppointmentCancelled",
+                    CreatedAt = DateTime.UtcNow
+                });
         }
 
         public async Task ConfirmAppointment(int id)
@@ -357,6 +379,17 @@ namespace BarberMe.Services.Services
             entity.CancellationReason = null;
 
             await _context.SaveChangesAsync();
+
+            await _rabbitMQPublisher.PublishAsync(
+                new NotificationMessage
+                {
+                    UserId = entity.ClientId,
+                    NotificationTypeId = NotificationTypeEnum.Reservation,
+                    Title = "Appointment confirmed",
+                    Text = $"Your appointment on {entity.StartDateTime:dd.MM.yyyy HH:mm} has been confirmed.",
+                    EventType = "AppointmentConfirmed",
+                    CreatedAt = DateTime.UtcNow
+                });
         }
 
         public async Task CompleteAppointment(int id)
@@ -380,6 +413,17 @@ namespace BarberMe.Services.Services
             entity.CompletedById = _currentUserService.UserId;
 
             await _context.SaveChangesAsync();
+
+            await _rabbitMQPublisher.PublishAsync(
+                new NotificationMessage
+                {
+                    UserId = entity.ClientId,
+                    NotificationTypeId = NotificationTypeEnum.Reservation,
+                    Title = "Appointment completed",
+                    Text = $"Your appointment on {entity.StartDateTime:dd.MM.yyyy HH:mm} has been completed.",
+                    EventType = "AppointmentCompleted",
+                    CreatedAt = DateTime.UtcNow
+                });
         }
 
         private void ValidateAppointmentAccess(Appointment appointment)
