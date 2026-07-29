@@ -8,6 +8,8 @@
 
         public string? Reason { get; set; }
 
+        public string? StripeRefundId { get; set; }
+
         public DateTime CreatedAt { get; set; }
     }
 }

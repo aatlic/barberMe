@@ -7,8 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Service\**" />
+    <EmbeddedResource Remove="Service\**" />
+    <None Remove="Service\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
+    <PackageReference Include="Stripe.net" Version="52.1.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -17,10 +24,6 @@
     <ProjectReference Include="..\BarberMe.Model.Responses\BarberMe.Model.Responses.csproj" />
     <ProjectReference Include="..\BarberMe.Model.Requests\BarberMe.Model.Requests.csproj" />
     <ProjectReference Include="..\BarberMe.Model\BarberMe.Model.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Service\" />
   </ItemGroup>
 
 </Project>

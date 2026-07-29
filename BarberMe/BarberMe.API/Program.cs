@@ -6,6 +6,7 @@ using BarberMe.API.SignalR;
 using BarberMe.Database.Context;
 using BarberMe.Model.Auth;
 using BarberMe.Model.Messaging;
+using BarberMe.Model.Payment;
 using BarberMe.Services.Interfaces;
 using BarberMe.Services.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -13,6 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Stripe;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -77,6 +79,17 @@ var jwt = builder.Configuration
     .GetSection("Jwt")
     .Get<JwtSettings>();
 
+var stripeSection = builder.Configuration.GetSection("Stripe");
+
+builder.Services.Configure<StripeSettings>(stripeSection);
+
+var stripeSettings = stripeSection.Get<StripeSettings>();
+
+if (!string.IsNullOrWhiteSpace(stripeSettings?.SecretKey))
+{
+    StripeConfiguration.ApiKey = stripeSettings.SecretKey;
+}
+
 builder.Services.AddAuthentication(
     JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -123,7 +136,7 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
-builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IReviewService, BarberMe.Services.Services.ReviewService>();
 builder.Services.AddScoped<IServiceService, ServiceService>();
 builder.Services.AddScoped<IWorkingHoursService, WorkingHoursService>();
 builder.Services.AddScoped<IBarberLevelService, BarberLevelService>();
@@ -133,7 +146,6 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<INewsService, NewsService>();
 builder.Services.AddScoped<ISupportRequestService, SupportRequestService>();
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
-builder.Services.AddScoped<IRefundService, RefundService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<INotificationHubService, NotificationHubService>();
 builder.Services.Configure<RabbitMQSettings>(

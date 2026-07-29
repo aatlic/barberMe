@@ -12,5 +12,9 @@ namespace BarberMe.Model.Responses.Payment
 
         public DateTime CreatedAt { get; set; }
         public DateTime? PaidAt { get; set; }
+
+        public string? ClientSecret { get; set; }
+
+        public string Currency { get; set; } = "bam";
     }
 }
