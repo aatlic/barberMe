@@ -14,6 +14,7 @@ obj/
 
 # VS Code
 .vscode/
+**/appsettings.Development.json
 
 # Flutter
 .dart_tool/
