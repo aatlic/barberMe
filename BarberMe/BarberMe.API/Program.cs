@@ -7,6 +7,7 @@ using BarberMe.Database.Context;
 using BarberMe.Model.Auth;
 using BarberMe.Model.Messaging;
 using BarberMe.Model.Payment;
+using BarberMe.Services;
 using BarberMe.Services.Interfaces;
 using BarberMe.Services.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -14,6 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QuestPDF.Infrastructure;
 using Stripe;
 using System.Text;
 
@@ -148,12 +150,15 @@ builder.Services.AddScoped<ISupportRequestService, SupportRequestService>();
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<INotificationHubService, NotificationHubService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.Configure<RabbitMQSettings>(
     builder.Configuration.GetSection("RabbitMQ"));
 builder.Services.AddSingleton<RabbitMQConnection>();
 builder.Services.AddSingleton<IRabbitMQPublisher, RabbitMQPublisher>();
 
 builder.Services.AddSignalR();
+
+QuestPDF.Settings.License = LicenseType.Community;
 
 var app = builder.Build();
 
