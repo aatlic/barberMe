@@ -21,6 +21,8 @@
 
         public bool IsPaid { get; set; }
         public bool ReminderEnabled { get; set; }
+        public DateTime? Reminder24hSentAt { get; set; }
+        public DateTime? Reminder1hSentAt { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
