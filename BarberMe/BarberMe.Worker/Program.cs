@@ -45,6 +45,7 @@ builder.Services.AddHttpClient<
     });
 
 builder.Services.AddHostedService<Worker>();
+builder.Services.AddHostedService<AppointmentReminderWorker>();
 
 var host = builder.Build();
 
