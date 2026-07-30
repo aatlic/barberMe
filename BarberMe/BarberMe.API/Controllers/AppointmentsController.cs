@@ -77,5 +77,12 @@ namespace BarberMe.API.Controllers
             await _service.CompleteAppointment(id);
             return Ok();
         }
+
+        [HttpPut("{id}/reschedule")]
+        [Authorize(Roles = $"{Roles.Client},{Roles.Barber},{Roles.Admin}")]
+        public async Task<bool> Reschedule(int id, AppointmentRescheduleRequest request)
+        {
+            return await _service.RescheduleAsync(id, request);
+        }
     }
 }

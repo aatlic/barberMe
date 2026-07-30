@@ -232,6 +232,106 @@ namespace BarberMe.Services.Services
                 createdAppointment);
         }
 
+        public async Task<bool> RescheduleAsync(int appointmentId, AppointmentRescheduleRequest request)
+        {
+            var entity = await _context.Appointments
+                .Include(x => x.BarberService)
+                    .ThenInclude(x => x.Service)
+                .Include(x => x.Barber)
+                .FirstOrDefaultAsync(x =>
+                    x.AppointmentId == appointmentId);
+
+            if (entity == null)
+            {
+                throw new NotFoundException("Appointment does not exist.");
+            }
+
+            ValidateAppointmentAccess(entity);
+
+            if (entity.AppointmentStatusId ==
+                (int)AppointmentStatusType.Cancelled)
+            {
+                throw new BusinessException("Cancelled appointment cannot be rescheduled.");
+            }
+
+            if (entity.AppointmentStatusId ==
+                (int)AppointmentStatusType.Completed)
+            {
+                throw new BusinessException("Completed appointment cannot be rescheduled.");
+            }
+
+            if (entity.StartDateTime <= DateTime.UtcNow)
+            {
+                throw new BusinessException("Appointment cannot be rescheduled after it has started.");
+            }
+
+            if (request.StartDateTime <= DateTime.UtcNow)
+            {
+                throw new BusinessException("New appointment date must be in the future.");
+            }
+
+            if (!entity.Barber.IsActive)
+            {
+                throw new BusinessException("Selected barber is not active.");
+            }
+
+            if (!entity.BarberService.Service.IsActive)
+            {
+                throw new BusinessException("Selected service is not active.");
+            }
+
+            var newStartDateTime = request.StartDateTime;
+
+            var newEndDateTime = newStartDateTime.AddMinutes(
+                entity.BarberService.DurationMinutes);
+
+            await ValidateBarberWorkingHours(
+                entity.BarberId,
+                newStartDateTime,
+                newEndDateTime);
+
+            var isTaken = await _context.Appointments
+                .AnyAsync(x =>
+                    x.AppointmentId != entity.AppointmentId &&
+                    x.BarberId == entity.BarberId &&
+                    x.AppointmentStatusId !=
+                        (int)AppointmentStatusType.Cancelled &&
+                    newStartDateTime < x.EndDateTime &&
+                    newEndDateTime > x.StartDateTime);
+
+            if (isTaken)
+            {
+                throw new BusinessException("Selected appointment time is already taken.");
+            }
+
+            var oldStartDateTime = entity.StartDateTime;
+
+            entity.StartDateTime = newStartDateTime;
+            entity.EndDateTime = newEndDateTime;
+
+            await _context.SaveChangesAsync();
+
+            await _rabbitMQPublisher.PublishAsync(
+                new NotificationMessage
+                {
+                    UserId = entity.ClientId,
+                    NotificationTypeId =
+                        NotificationTypeEnum.Reservation,
+
+                    Title = "Appointment rescheduled",
+
+                    Text =
+                        $"Your appointment has been rescheduled " +
+                        $"from {oldStartDateTime:dd.MM.yyyy HH:mm} " +
+                        $"to {entity.StartDateTime:dd.MM.yyyy HH:mm}.",
+
+                    EventType = "AppointmentRescheduled",
+                    CreatedAt = DateTime.UtcNow
+                });
+
+            return true;
+        }
+
         public async Task<List<AvailableSlotResponse>> GetAvailableSlots(
             int barberId,
             int serviceId,
