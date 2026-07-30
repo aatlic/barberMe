@@ -20,8 +20,7 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<ReportResponse>> GetReport(
-            [FromQuery] ReportSearchObject search)
+        public async Task<ActionResult<ReportResponse>> GetReport([FromQuery] ReportSearchObject search)
         {
             var result = await _service.GetReportAsync(search);
 
@@ -29,8 +28,7 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpGet("pdf")]
-        public async Task<IActionResult> DownloadPdf(
-            [FromQuery] ReportSearchObject search)
+        public async Task<IActionResult> DownloadPdf([FromQuery] ReportSearchObject search)
         {
             var pdf = await _service.GeneratePdfAsync(search);
 
@@ -38,6 +36,25 @@ namespace BarberMe.API.Controllers
                 $"barber-report-" +
                 $"{search.DateFrom:yyyyMMdd}-" +
                 $"{search.DateTo:yyyyMMdd}.pdf";
+
+            return File(
+                pdf,
+                "application/pdf",
+                fileName);
+        }
+
+        [HttpGet("barber-performance/pdf")]
+        [Authorize(Roles = Roles.Admin)]
+        public async Task<IActionResult> GetBarberPerformancePdf([FromQuery] ReportSearchObject search)
+        {
+            var pdf = await _service.GenerateBarberPerformancePdfAsync(search);
+
+            var barber = search.BarberId.HasValue
+                ? $"-{search.BarberId.Value}"
+                : "-all";
+
+            var fileName =
+                $"barber-performance-{search.DateFrom:yyyyMMdd}-{search.DateTo:yyyyMMdd}{barber}.pdf";
 
             return File(
                 pdf,

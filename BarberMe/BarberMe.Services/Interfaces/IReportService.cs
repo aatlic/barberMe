@@ -8,5 +8,9 @@ namespace BarberMe.Services.Interfaces
         Task<ReportResponse> GetReportAsync(ReportSearchObject search);
 
         Task<byte[]> GeneratePdfAsync(ReportSearchObject search);
+
+        Task<BarberPerformanceReportResponse> GetBarberPerformanceReportAsync(ReportSearchObject search);
+
+        Task<byte[]> GenerateBarberPerformancePdfAsync(ReportSearchObject search);
     }
 }

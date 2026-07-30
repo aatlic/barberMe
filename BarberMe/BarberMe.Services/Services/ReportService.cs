@@ -239,5 +239,153 @@ namespace BarberMe.Services
                 throw new BusinessException("BarberId must be greater than zero.");
             }
         }
+
+        public async Task<BarberPerformanceReportResponse> GetBarberPerformanceReportAsync(
+            ReportSearchObject search)
+        {
+            ValidateSearch(search);
+
+            var dateFrom = search.DateFrom!.Value.Date;
+            var dateToExclusive = search.DateTo!.Value.Date.AddDays(1);
+
+            var appointmentsQuery = _context.Appointments
+                .AsNoTracking()
+                .Include(x => x.Barber)
+                .Include(x => x.BarberService)
+                    .ThenInclude(x => x.Service)
+                .Include(x => x.AppointmentStatus)
+                .Where(x =>
+                    x.StartDateTime >= dateFrom &&
+                    x.StartDateTime < dateToExclusive &&
+                    x.AppointmentStatus.Name == "Completed");
+
+            if (search.BarberId.HasValue)
+            {
+                var barberExists = await _context.Users
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.UserId == search.BarberId.Value &&
+                        x.IsActive);
+
+                if (!barberExists)
+                {
+                    throw new NotFoundException("Barber was not found.");
+                }
+
+                appointmentsQuery = appointmentsQuery.Where(x => x.BarberId == search.BarberId.Value);
+            }
+
+            var completedAppointments = await appointmentsQuery.ToListAsync();
+
+            var appointmentIds = completedAppointments
+                .Select(x => x.AppointmentId)
+                .ToList();
+
+            var completedPayments = await _context.Payments
+                .AsNoTracking()
+                .Include(x => x.PaymentStatus)
+                .Where(x =>
+                    appointmentIds.Contains(x.AppointmentId) &&
+                    x.PaymentStatus.Name == "Completed")
+                .ToListAsync();
+
+            var reviews = await _context.Reviews
+                .AsNoTracking()
+                .Where(x => appointmentIds.Contains(x.AppointmentId))
+                .ToListAsync();
+
+            var paymentAmountByAppointment = completedPayments
+                .GroupBy(x => x.AppointmentId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Sum(x => x.Amount));
+
+            var barbers = completedAppointments
+                .GroupBy(x => new
+                {
+                    x.BarberId,
+                    x.Barber.FirstName,
+                    x.Barber.LastName
+                })
+                .Select(group =>
+                {
+                    var barberAppointmentIds = group
+                        .Select(x => x.AppointmentId)
+                        .ToHashSet();
+
+                    var barberReviews = reviews
+                        .Where(x =>
+                            barberAppointmentIds.Contains(x.AppointmentId))
+                        .ToList();
+
+                    var mostPopularService = group
+                        .GroupBy(x => x.BarberService.Service.Name)
+                        .OrderByDescending(x => x.Count())
+                        .ThenBy(x => x.Key)
+                        .Select(x => x.Key)
+                        .FirstOrDefault();
+
+                    return new BarberPerformanceItemResponse
+                    {
+                        BarberId = group.Key.BarberId,
+                        BarberName =$"{group.Key.FirstName} {group.Key.LastName}",
+
+                        CompletedAppointments = group.Count(),
+
+                        UniqueClients = group
+                            .Select(x => x.ClientId)
+                            .Distinct()
+                            .Count(),
+
+                        TotalRevenue = group.Sum(appointment =>
+                            paymentAmountByAppointment.TryGetValue(
+                                appointment.AppointmentId,
+                                out var paidAmount)
+                                    ? paidAmount
+                                    : 0),
+
+                        AverageRating = barberReviews.Count > 0
+                            ? Math.Round(
+                                barberReviews.Average(x => x.Rating),
+                                2)
+                            : 0,
+
+                        MostPopularService =
+                            mostPopularService ?? "No data"
+                    };
+                })
+                .OrderByDescending(x => x.TotalRevenue)
+                .ThenByDescending(x => x.CompletedAppointments)
+                .ThenBy(x => x.BarberName)
+                .ToList();
+
+            return new BarberPerformanceReportResponse
+            {
+                DateFrom = dateFrom,
+                DateTo = search.DateTo.Value.Date,
+
+                TotalCompletedAppointments = completedAppointments.Count,
+
+                TotalUniqueClients = completedAppointments
+                    .Select(x => x.ClientId)
+                    .Distinct()
+                    .Count(),
+
+                TotalRevenue = completedPayments.Sum(x => x.Amount),
+
+                Barbers = barbers,
+
+                GeneratedAt = DateTime.UtcNow
+            };
+        }
+
+        public async Task<byte[]> GenerateBarberPerformancePdfAsync(ReportSearchObject search)
+        {
+            var report = await GetBarberPerformanceReportAsync(search);
+
+            var document = new BarberPerformanceReportDocument(report);
+
+            return document.GeneratePdf();
+        }
     }
 }
