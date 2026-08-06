@@ -1,22 +1,26 @@
-﻿using System.Text;
-using System.Text.Json;
+﻿using BarberMe.API.Messaging;
 using BarberMe.Model.Messaging;
 using BarberMe.Services.Interfaces;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
+using System.Text;
+using System.Text.Json;
 
 namespace BarberMe.Services
 {
     public class PasswordResetEmailPublisher : IPasswordResetEmailPublisher
     {
         private readonly RabbitMQSettings _settings;
+        private readonly RabbitMQConnection _rabbitMQConnection;
         private readonly ILogger<PasswordResetEmailPublisher> _logger;
 
         public PasswordResetEmailPublisher(
             IOptions<RabbitMQSettings> settings,
+            RabbitMQConnection rabbitMQConnection,
             ILogger<PasswordResetEmailPublisher> logger)
         {
             _settings = settings.Value;
+            _rabbitMQConnection = rabbitMQConnection;
             _logger = logger;
         }
 
@@ -32,8 +36,9 @@ namespace BarberMe.Services
                 Password = _settings.Password
             };
 
-            await using var connection =
-                await factory.CreateConnectionAsync(cancellationToken);
+            var connection =
+                await _rabbitMQConnection.GetConnectionAsync(
+                    cancellationToken);
 
             await using var channel =
                 await connection.CreateChannelAsync(
