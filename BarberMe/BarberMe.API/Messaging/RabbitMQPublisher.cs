@@ -25,7 +25,7 @@ namespace BarberMe.API.Messaging
             _logger = logger;
         }
 
-        public async Task PublishAsync(
+        public async Task<bool> PublishAsync(
             string message,
             CancellationToken cancellationToken = default)
         {
@@ -54,15 +54,39 @@ namespace BarberMe.API.Messaging
                 _logger.LogInformation(
                     "Message published to RabbitMQ queue {QueueName}.",
                     _settings.NotificationQueueName);
+
+                return true;
+            }
+            catch (OperationCanceledException)
+                when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception exception)
             {
                 _logger.LogError(
                     exception,
-                    "Failed to publish message to RabbitMQ queue {QueueName}.",
+                    "Failed to publish message to RabbitMQ queue {QueueName}. " +
+                    "The main operation will not be rolled back.",
                     _settings.NotificationQueueName);
 
-                throw;
+                if (_channel is not null)
+                {
+                    try
+                    {
+                        await _channel.DisposeAsync();
+                    }
+                    catch (Exception disposeException)
+                    {
+                        _logger.LogWarning(
+                            disposeException,
+                            "Failed to dispose the unavailable RabbitMQ channel.");
+                    }
+
+                    _channel = null;
+                }
+
+                return false;
             }
             finally
             {
@@ -99,7 +123,7 @@ namespace BarberMe.API.Messaging
                 cancellationToken: cancellationToken);
         }
 
-        public async Task PublishAsync<TMessage>(
+        public async Task<bool> PublishAsync<TMessage>(
             TMessage message,
             CancellationToken cancellationToken = default)
         {
@@ -107,7 +131,9 @@ namespace BarberMe.API.Messaging
 
             var json = JsonSerializer.Serialize(message);
 
-            await PublishAsync(json, cancellationToken);
+            return await PublishAsync(
+                json,
+                cancellationToken);
         }
     }
 }

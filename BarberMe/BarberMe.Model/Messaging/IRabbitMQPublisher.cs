@@ -2,11 +2,11 @@
 {
     public interface IRabbitMQPublisher
     {
-        Task PublishAsync(
+        Task<bool> PublishAsync(
             string message,
             CancellationToken cancellationToken = default);
 
-        Task PublishAsync<TMessage>(
+        Task<bool> PublishAsync<TMessage>(
             TMessage message,
             CancellationToken cancellationToken = default);
     }

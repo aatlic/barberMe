@@ -561,29 +561,42 @@ namespace BarberMe.Services.Services
 
             var expiresAt = DateTime.UtcNow.AddHours(24);
 
-            user.PasswordHash =
-                BCrypt.Net.BCrypt.HashPassword(
-                    temporaryPassword);
+            await using var transaction =
+                await _context.Database.BeginTransactionAsync();
 
-            user.RequirePasswordChange = true;
-            user.TemporaryPasswordExpiresAt = expiresAt;
-            user.FailedLoginAttempts = 0;
-            user.IsLocked = false;
-            user.LockedUntil = null;
+            try
+            {
+                user.PasswordHash =
+                    BCrypt.Net.BCrypt.HashPassword(
+                        temporaryPassword);
 
-            await _context.SaveChangesAsync();
+                user.RequirePasswordChange = true;
+                user.TemporaryPasswordExpiresAt = expiresAt;
+                user.FailedLoginAttempts = 0;
+                user.IsLocked = false;
+                user.LockedUntil = null;
 
-            await _passwordResetEmailPublisher.PublishAsync(
-                new PasswordResetEmailMessage
-                {
-                    RecipientEmail = user.Email,
-                    FirstName = user.FirstName,
-                    TemporaryPassword = temporaryPassword,
-                    ExpiresAt = expiresAt,
-                    CreatedAt = DateTime.UtcNow
-                });
+                await _context.SaveChangesAsync();
 
-            return true;
+                await _passwordResetEmailPublisher.PublishAsync(
+                    new PasswordResetEmailMessage
+                    {
+                        RecipientEmail = user.Email,
+                        FirstName = user.FirstName,
+                        TemporaryPassword = temporaryPassword,
+                        ExpiresAt = expiresAt,
+                        CreatedAt = DateTime.UtcNow
+                    });
+
+                await transaction.CommitAsync();
+
+                return true;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         private static string GenerateTemporaryPassword()
