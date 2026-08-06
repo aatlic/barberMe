@@ -140,12 +140,14 @@ namespace BarberMe.Services.Services
 
             if (request.BarberServiceId <= 0)
             {
-                throw new BusinessException("Barber service is required.");
+                throw new BusinessException(
+                    "Barber service is required.");
             }
 
             if (request.StartDateTime <= DateTime.UtcNow)
             {
-                throw new BusinessException("Appointment date must be in the future.");
+                throw new BusinessException(
+                    "Appointment date must be in the future.");
             }
 
             var barberService = await _context.BarberServices
@@ -156,35 +158,62 @@ namespace BarberMe.Services.Services
 
             if (barberService == null)
             {
-                throw new NotFoundException("Barber service does not exist.");
+                throw new NotFoundException(
+                    "Barber service does not exist.");
             }
 
             if (!barberService.Barber.IsActive)
             {
-                throw new BusinessException("Selected barber is not active.");
+                throw new BusinessException(
+                    "Selected barber is not active.");
             }
 
-            var clientExists = await _context.Users
+            var client = await _context.Users
                 .Include(x => x.Role)
-                .AnyAsync(x =>
+                .FirstOrDefaultAsync(x =>
                     x.UserId == clientId &&
-                    x.IsActive &&
-                    (x.Role.Name == Roles.Client || x.Role.Name == Roles.Admin || x.Role.Name == Roles.Barber));
+                    x.IsActive);
 
-            if (!clientExists)
+            if (client == null ||
+                (client.Role.Name != Roles.Client &&
+                 client.Role.Name != Roles.Admin &&
+                 client.Role.Name != Roles.Barber))
             {
-                throw new NotFoundException("Active client does not exist.");
+                throw new NotFoundException(
+                    "Active client does not exist.");
             }
 
             var entity = _mapper.Map<Appointment>(request);
 
             entity.ClientId = clientId;
             entity.BarberId = barberService.BarberId;
+
             entity.EndDateTime = request.StartDateTime
                 .AddMinutes(barberService.DurationMinutes);
+
             entity.AppointmentStatusId =
-                (int)Model.Enum.AppointmentStatusType.Pending;
+                (int)AppointmentStatusType.Pending;
+
             entity.IsPaid = false;
+
+            var basePrice = barberService.Price;
+            var discountPercent = client.DiscountPercent;
+            var penaltyPercent =
+                client.HasNoShowPenalty ? 10m : 0m;
+
+            var discountedPrice =
+                basePrice * (1m - discountPercent / 100m);
+
+            var finalPrice =
+                discountedPrice * (1m + penaltyPercent / 100m);
+
+            entity.BasePrice = basePrice;
+            entity.AppliedDiscountPercent = discountPercent;
+            entity.AppliedPenaltyPercent = penaltyPercent;
+            entity.FinalPrice = Math.Round(
+                finalPrice,
+                2,
+                MidpointRounding.AwayFromZero);
 
             await ValidateBarberWorkingHours(
                 entity.BarberId,
@@ -195,25 +224,35 @@ namespace BarberMe.Services.Services
                 .AnyAsync(x =>
                     x.BarberId == entity.BarberId &&
                     x.AppointmentStatusId !=
-                        (int)Model.Enum.AppointmentStatusType.Cancelled &&
+                        (int)AppointmentStatusType.Cancelled &&
                     entity.StartDateTime < x.EndDateTime &&
                     entity.EndDateTime > x.StartDateTime);
 
             if (isTaken)
             {
-                throw new BusinessException("Selected appointment time is already taken.");
+                throw new BusinessException(
+                    "Selected appointment time is already taken.");
             }
 
             _context.Appointments.Add(entity);
+
+            if (client.HasNoShowPenalty)
+            {
+                client.HasNoShowPenalty = false;
+            }
+
             await _context.SaveChangesAsync();
 
             await _rabbitMQPublisher.PublishAsync(
                 new NotificationMessage
                 {
                     UserId = entity.ClientId,
-                    NotificationTypeId = NotificationTypeEnum.Reservation,
+                    NotificationTypeId =
+                        NotificationTypeEnum.Reservation,
                     Title = "Appointment created",
-                    Text = $"Your appointment has been created for {entity.StartDateTime:dd.MM.yyyy HH:mm}.",
+                    Text =
+                        $"Your appointment has been created for " +
+                        $"{entity.StartDateTime:dd.MM.yyyy HH:mm}.",
                     EventType = "AppointmentCreated",
                     CreatedAt = DateTime.UtcNow
                 });
@@ -495,6 +534,7 @@ namespace BarberMe.Services.Services
         public async Task CompleteAppointment(int id)
         {
             var entity = await _context.Appointments
+                .Include(x => x.Client)
                 .FirstOrDefaultAsync(x => x.AppointmentId == id);
 
             if (entity == null)
@@ -511,6 +551,10 @@ namespace BarberMe.Services.Services
             entity.AppointmentStatusId = (int)Model.Enum.AppointmentStatusType.Completed;
             entity.CompletedAt = DateTime.UtcNow;
             entity.CompletedById = _currentUserService.UserId;
+
+            entity.Client.DiscountPercent = Math.Min(
+                entity.Client.DiscountPercent + 2m,
+                20m);
 
             await _context.SaveChangesAsync();
 
@@ -574,6 +618,82 @@ namespace BarberMe.Services.Services
 
             if (!isWithinWorkingHours)
                 throw new BusinessException("Barber is not working at the selected time.");
+        }
+
+        public async Task MarkAsNoShowAsync(int id)
+        {
+            var appointment = await _context.Appointments
+                .Include(x => x.Client)
+                .Include(x => x.AppointmentStatus)
+                .FirstOrDefaultAsync(x => x.AppointmentId == id);
+
+            if (appointment == null)
+            {
+                throw new NotFoundException(
+                    "Appointment does not exist.");
+            }
+
+            if (_currentUserService.Role != Roles.Admin &&
+                _currentUserService.Role != Roles.Barber)
+            {
+                throw new UnauthorizedException(
+                    "Only an administrator or barber can mark an appointment as no-show.");
+            }
+
+            if (_currentUserService.Role == Roles.Barber &&
+                appointment.BarberId != _currentUserService.UserId)
+            {
+                throw new UnauthorizedException(
+                    "You can only manage your own appointments.");
+            }
+
+            if (appointment.AppointmentStatusId ==
+                (int)AppointmentStatusType.Cancelled)
+            {
+                throw new BusinessException(
+                    "A cancelled appointment cannot be marked as no-show.");
+            }
+
+            if (appointment.AppointmentStatusId ==
+                (int)AppointmentStatusType.Completed)
+            {
+                throw new BusinessException(
+                    "A completed appointment cannot be marked as no-show.");
+            }
+
+            if (appointment.AppointmentStatusId ==
+                (int)AppointmentStatusType.NoShow)
+            {
+                throw new BusinessException(
+                    "Appointment is already marked as no-show.");
+            }
+
+            if (appointment.StartDateTime > DateTime.UtcNow)
+            {
+                throw new BusinessException(
+                    "A future appointment cannot be marked as no-show.");
+            }
+
+            appointment.AppointmentStatusId =
+                (int)AppointmentStatusType.NoShow;
+
+            appointment.Client.HasNoShowPenalty = true;
+
+            await _context.SaveChangesAsync();
+
+            await _rabbitMQPublisher.PublishAsync(
+                new NotificationMessage
+                {
+                    UserId = appointment.ClientId,
+                    NotificationTypeId =
+                        NotificationTypeEnum.Reservation,
+                    Title = "Appointment marked as no-show",
+                    Text =
+                        "You did not attend your appointment. " +
+                        "A 10% price increase will apply to your next appointment.",
+                    EventType = "AppointmentNoShow",
+                    CreatedAt = DateTime.UtcNow
+                });
         }
     }
 }

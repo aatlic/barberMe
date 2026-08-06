@@ -9,5 +9,6 @@
         public string NotificationQueueName { get; set; } = string.Empty;
         public string NewsletterQueueName { get; set; } = string.Empty;
         public string PasswordResetQueueName { get; set; } = string.Empty;
+        public string SupportRequestQueueName { get; set; } = string.Empty;
     }
 }

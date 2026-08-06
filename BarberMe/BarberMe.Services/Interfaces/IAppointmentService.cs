@@ -22,5 +22,7 @@ namespace BarberMe.Services.Interfaces
         Task CompleteAppointment(int id);
 
         Task<bool> RescheduleAsync(int appointmentId,AppointmentRescheduleRequest request);
+
+        Task MarkAsNoShowAsync(int id);
     }
 }

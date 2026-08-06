@@ -31,6 +31,9 @@
 
         public DateTime? TemporaryPasswordExpiresAt { get; set; }
 
+        public decimal DiscountPercent { get; set; }
+
+        public bool HasNoShowPenalty { get; set; }
 
         public ICollection<BarberService> BarberServices { get; set; } = new List<BarberService>();
         public ICollection<WorkingHours> WorkingHours { get; set; } = new List<WorkingHours>();
