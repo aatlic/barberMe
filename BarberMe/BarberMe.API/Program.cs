@@ -158,6 +158,7 @@ builder.Services.AddSingleton<IRabbitMQPublisher, RabbitMQPublisher>();
 builder.Services.AddScoped<INewsletterPublisher, NewsletterPublisher>();
 builder.Services.AddScoped<IPasswordResetEmailPublisher,PasswordResetEmailPublisher>();
 builder.Services.AddSignalR();
+builder.Services.AddMemoryCache();
 
 QuestPDF.Settings.License = LicenseType.Community;
 

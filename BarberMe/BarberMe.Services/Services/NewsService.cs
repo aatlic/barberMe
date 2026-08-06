@@ -9,6 +9,7 @@ using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Helpers;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace BarberMe.Services.Services
 {
@@ -16,15 +17,33 @@ namespace BarberMe.Services.Services
     {
         private readonly BarberMeDbContext _context;
         private readonly IMapper _mapper;
+        private const string NewsCacheKey = "news";
 
-        public NewsService(BarberMeDbContext context, IMapper mapper)
+        private readonly IMemoryCache _cache;
+        public NewsService(
+            BarberMeDbContext context,
+            IMapper mapper,
+            IMemoryCache cache)
         {
             _context = context;
             _mapper = mapper;
+            _cache = cache;
         }
 
         public async Task<PagedResponse<NewsResponse>> GetAsync(NewsSearchObject search)
         {
+            if (string.IsNullOrWhiteSpace(search.FTS)
+                && (search.Page ?? 1) == 1
+                && (search.PageSize ?? 10) == 10)
+            {
+                if (_cache.TryGetValue(
+                    NewsCacheKey,
+                    out PagedResponse<NewsResponse>? cached))
+                {
+                    return cached!;
+                }
+            }
+
             var query = _context.News.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search.FTS))
@@ -54,13 +73,25 @@ namespace BarberMe.Services.Services
                 .Take(pageSize)
                 .ToListAsync();
 
-            return new PagedResponse<NewsResponse>
+            var response = new PagedResponse<NewsResponse>
             {
                 Items = _mapper.Map<List<NewsResponse>>(list),
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize
             };
+
+            if (string.IsNullOrWhiteSpace(search.FTS)
+                && page == 1
+                && pageSize == 10)
+            {
+                _cache.Set(
+                    NewsCacheKey,
+                    response,
+                    TimeSpan.FromMinutes(5));
+            }
+
+            return response;
         }
 
         public async Task<NewsResponse?> GetByIdAsync(int id)
@@ -96,6 +127,8 @@ namespace BarberMe.Services.Services
             _context.News.Add(entity);
             await _context.SaveChangesAsync();
 
+            _cache.Remove(NewsCacheKey);
+
             return _mapper.Map<NewsResponse>(entity);
         }
 
@@ -128,6 +161,8 @@ namespace BarberMe.Services.Services
 
             await _context.SaveChangesAsync();
 
+            _cache.Remove(NewsCacheKey);
+
             return _mapper.Map<NewsResponse>(entity);
         }
 
@@ -145,6 +180,8 @@ namespace BarberMe.Services.Services
             entity.IsActive = false;
 
             await _context.SaveChangesAsync();
+
+            _cache.Remove(NewsCacheKey);
 
             return true;
         }
