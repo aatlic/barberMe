@@ -7,7 +7,7 @@
         public string UserName { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public string NotificationQueueName { get; set; } = string.Empty;
-
         public string NewsletterQueueName { get; set; } = string.Empty;
+        public string PasswordResetQueueName { get; set; } = string.Empty;
     }
 }

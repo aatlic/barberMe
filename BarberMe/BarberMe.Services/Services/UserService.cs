@@ -25,18 +25,21 @@ namespace BarberMe.Services.Services
         private readonly IJwtService _jwtService;
         private readonly ICurrentUserService _currentUserService;
         private readonly INewsletterPublisher _newsletterPublisher;
+        private readonly IPasswordResetEmailPublisher _passwordResetEmailPublisher;
         public UserService(
             BarberMeDbContext context,
             IMapper mapper,
             IJwtService jwtService,
             ICurrentUserService currentUserService,
-            INewsletterPublisher newsletterPublisher)
+            INewsletterPublisher newsletterPublisher,
+            IPasswordResetEmailPublisher passwordResetEmailPublisher)
         {
             _context = context;
             _mapper = mapper;
             _jwtService = jwtService;
             _currentUserService = currentUserService;
             _newsletterPublisher = newsletterPublisher;
+            _passwordResetEmailPublisher = passwordResetEmailPublisher;
         }
 
         private int GetCurrentUserId()
@@ -541,33 +544,46 @@ namespace BarberMe.Services.Services
             return _mapper.Map<UserResponse>(user);
         }
 
-        public async Task<string?> ForgotPassword(ForgotPasswordRequest request)
+        public async Task<bool> ForgotPassword(ForgotPasswordRequest request)
         {
-            var normalizedEmail = request.Email.Trim().ToLower();
+            var normalizedEmail = request.Email
+                .Trim()
+                .ToLower();
 
             var user = await _context.Users
                 .FirstOrDefaultAsync(x =>
                     x.Email.ToLower() == normalizedEmail);
 
             if (user == null || !user.IsActive)
-                return null;
+                return true;
 
             var temporaryPassword = GenerateTemporaryPassword();
 
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(
-                temporaryPassword);
+            var expiresAt = DateTime.UtcNow.AddHours(24);
+
+            user.PasswordHash =
+                BCrypt.Net.BCrypt.HashPassword(
+                    temporaryPassword);
 
             user.RequirePasswordChange = true;
-            user.TemporaryPasswordExpiresAt =
-                DateTime.UtcNow.AddHours(24);
-
+            user.TemporaryPasswordExpiresAt = expiresAt;
             user.FailedLoginAttempts = 0;
             user.IsLocked = false;
             user.LockedUntil = null;
 
             await _context.SaveChangesAsync();
 
-            return temporaryPassword;
+            await _passwordResetEmailPublisher.PublishAsync(
+                new PasswordResetEmailMessage
+                {
+                    RecipientEmail = user.Email,
+                    FirstName = user.FirstName,
+                    TemporaryPassword = temporaryPassword,
+                    ExpiresAt = expiresAt,
+                    CreatedAt = DateTime.UtcNow
+                });
+
+            return true;
         }
 
         private static string GenerateTemporaryPassword()
