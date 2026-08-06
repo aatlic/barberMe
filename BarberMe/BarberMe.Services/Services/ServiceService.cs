@@ -2,6 +2,7 @@
 using BarberMe.Database.Context;
 using BarberMe.Database.Models;
 using BarberMe.Model.Exceptions;
+using BarberMe.Model.Messaging;
 using BarberMe.Model.Requests.Service;
 using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.Service;
@@ -16,11 +17,16 @@ namespace BarberMe.Services.Services
     {
         private readonly BarberMeDbContext _context;
         private readonly IMapper _mapper;
+        private readonly INewsletterPublisher _newsletterPublisher;
 
-        public ServiceService(BarberMeDbContext context, IMapper mapper)
+        public ServiceService(
+            BarberMeDbContext context,
+            IMapper mapper,
+            INewsletterPublisher newsletterPublisher)
         {
             _context = context;
             _mapper = mapper;
+            _newsletterPublisher = newsletterPublisher;
         }
 
         public async Task<PagedResponse<ServiceResponse>> GetAsync(ServiceSearchObject search)
@@ -97,6 +103,8 @@ namespace BarberMe.Services.Services
 
             var entity = _mapper.Map<Service>(request);
 
+            entity.DefaultPrice = request.Price;
+            entity.DefaultDurationMinutes = request.DurationMinutes;
             entity.IsActive = true;
 
             if (request.Image != null)
@@ -110,6 +118,23 @@ namespace BarberMe.Services.Services
 
             _context.Services.Add(entity);
             await _context.SaveChangesAsync();
+
+            await _newsletterPublisher.PublishAsync(
+                new NewsletterMessage
+                {
+                    Subject = "Nova usluga u Barber Me ponudi",
+
+                    Body =
+                        $"U našoj ponudi dostupna je nova usluga: " +
+                        $"{entity.Name}.\n\n" +
+                        $"Cijena usluge: {entity.DefaultPrice:N2} KM.\n" +
+                        $"Trajanje usluge: {entity.DefaultDurationMinutes} minuta.\n\n" +
+                        "Otvorite Barber Me aplikaciju i rezervišite svoj termin.",
+
+                    EventType = "ServiceCreated",
+
+                    CreatedAt = DateTime.UtcNow
+                });
 
             return _mapper.Map<ServiceResponse>(entity);
         }
@@ -142,6 +167,11 @@ namespace BarberMe.Services.Services
             if (exists)
                 throw new BusinessException("Service with this name already exists.");
 
+            var oldPrice = entity.DefaultPrice;
+
+            entity.DefaultPrice = request.Price;
+            entity.DefaultDurationMinutes = request.DurationMinutes;
+
             _mapper.Map(request, entity);
 
             if (request.Image != null)
@@ -156,6 +186,26 @@ namespace BarberMe.Services.Services
             }
 
             await _context.SaveChangesAsync();
+
+            if (oldPrice != entity.DefaultPrice)
+            {
+                await _newsletterPublisher.PublishAsync(
+                    new NewsletterMessage
+                    {
+                        Subject =
+                            "Promjena cijene usluge u Barber Me",
+
+                        Body =
+                            $"Cijena usluge {entity.Name} je promijenjena.\n\n" +
+                            $"Stara cijena: {oldPrice:N2} KM.\n" +
+                            $"Nova cijena: {entity.DefaultPrice:N2} KM.\n\n" +
+                            "Otvorite Barber Me aplikaciju za više informacija.",
+
+                        EventType = "ServicePriceChanged",
+
+                        CreatedAt = DateTime.UtcNow
+                    });
+            }
 
             return _mapper.Map<ServiceResponse>(entity);
         }

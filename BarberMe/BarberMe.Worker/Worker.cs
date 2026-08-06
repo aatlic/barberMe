@@ -51,7 +51,7 @@ namespace BarberMe.Worker
                     cancellationToken: stoppingToken);
 
                 await _channel.QueueDeclareAsync(
-                    queue: _rabbitMQSettings.QueueName,
+                    queue: _rabbitMQSettings.NotificationQueueName,
                     durable: true,
                     exclusive: false,
                     autoDelete: false,
@@ -72,14 +72,14 @@ namespace BarberMe.Worker
                 };
 
                 await _channel.BasicConsumeAsync(
-                    queue: _rabbitMQSettings.QueueName,
+                    queue: _rabbitMQSettings.NotificationQueueName,
                     autoAck: false,
                     consumer: consumer,
                     cancellationToken: stoppingToken);
 
                 _logger.LogInformation(
                     "Worker is listening to RabbitMQ queue {QueueName}.",
-                    _rabbitMQSettings.QueueName);
+                    _rabbitMQSettings.NotificationQueueName);
 
                 await Task.Delay(
                     Timeout.InfiniteTimeSpan,

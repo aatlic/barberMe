@@ -15,7 +15,13 @@ namespace BarberMe.Model.Requests.Service
         [Range(1, 1000, ErrorMessage = "Duration must be between 1 and 1000 minutes.")]
         public int DurationMinutes { get; set; }
 
-        [Range(typeof(decimal), "0.01", "10000", ErrorMessage = "Price must be greater than 0.")]
+        [Range(
+            typeof(decimal),
+            "0.01",
+            "10000",
+            ParseLimitsInInvariantCulture = true,
+            ConvertValueInInvariantCulture = true,
+            ErrorMessage = "Service price must be between 0.01 and 10000.")]
         public decimal Price { get; set; }
 
         public IFormFile? Image { get; set; }

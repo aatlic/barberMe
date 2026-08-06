@@ -31,5 +31,7 @@ namespace BarberMe.Model.Requests.User
             30,
             ErrorMessage = "Phone number must not exceed 30 characters.")]
         public string PhoneNumber { get; set; } = null!;
+
+        public bool ReceiveNewsletter { get; set; }
     }
 }

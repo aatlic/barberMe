@@ -52,7 +52,7 @@ namespace BarberMe.Database.EntityConfigurations
 
                     IsActive = true,
                     RequirePasswordChange = false,
-
+                    ReceiveNewsletter = false,
                     CreatedAt = new DateTime(2026, 1, 1)
                 },
                 new User
@@ -76,7 +76,7 @@ namespace BarberMe.Database.EntityConfigurations
 
                     IsActive = true,
                     RequirePasswordChange = false,
-
+                    ReceiveNewsletter = false,
                     CreatedAt = new DateTime(2026, 1, 1)
                 },
                 new User
@@ -100,6 +100,7 @@ namespace BarberMe.Database.EntityConfigurations
 
                     IsActive = true,
                     RequirePasswordChange = false,
+                    ReceiveNewsletter = true,
 
                     CreatedAt = new DateTime(2026, 1, 1)
                 }

@@ -25,6 +25,7 @@
 
         public bool IsActive { get; set; } = true;
         public bool RequirePasswordChange { get; set; }
+        public bool ReceiveNewsletter { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

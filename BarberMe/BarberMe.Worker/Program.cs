@@ -13,6 +13,9 @@ builder.Services.Configure<RabbitMQSettings>(
 builder.Services.Configure<InternalApiSettings>(
     builder.Configuration.GetSection("InternalApi"));
 
+builder.Services.Configure<SmtpSettings>(
+    builder.Configuration.GetSection("Smtp"));
+
 var connectionString =
     builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException(
@@ -21,9 +24,10 @@ var connectionString =
 builder.Services.AddDbContext<BarberMeDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-builder.Services.AddScoped<
-    INotificationProcessor,
-    NotificationProcessor>();
+builder.Services.AddScoped<INotificationProcessor,NotificationProcessor>();
+
+builder.Services.AddScoped<IEmailSender, EmailSender>();
+builder.Services.AddScoped<INewsletterProcessor, NewsletterProcessor>();
 
 builder.Services.AddHttpClient<
     IInternalNotificationClient,
@@ -46,6 +50,7 @@ builder.Services.AddHttpClient<
 
 builder.Services.AddHostedService<Worker>();
 builder.Services.AddHostedService<AppointmentReminderWorker>();
+builder.Services.AddHostedService<NewsletterWorker>();
 
 var host = builder.Build();
 

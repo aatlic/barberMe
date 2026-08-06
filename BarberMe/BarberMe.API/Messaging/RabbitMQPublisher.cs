@@ -45,7 +45,7 @@ namespace BarberMe.API.Messaging
 
                 await _channel!.BasicPublishAsync(
                     exchange: string.Empty,
-                    routingKey: _settings.QueueName,
+                    routingKey: _settings.NotificationQueueName,
                     mandatory: true,
                     basicProperties: properties,
                     body: body,
@@ -53,14 +53,14 @@ namespace BarberMe.API.Messaging
 
                 _logger.LogInformation(
                     "Message published to RabbitMQ queue {QueueName}.",
-                    _settings.QueueName);
+                    _settings.NotificationQueueName);
             }
             catch (Exception exception)
             {
                 _logger.LogError(
                     exception,
                     "Failed to publish message to RabbitMQ queue {QueueName}.",
-                    _settings.QueueName);
+                    _settings.NotificationQueueName);
 
                 throw;
             }
@@ -91,7 +91,7 @@ namespace BarberMe.API.Messaging
                 cancellationToken: cancellationToken);
 
             await _channel.QueueDeclareAsync(
-                queue: _settings.QueueName,
+                queue: _settings.NotificationQueueName,
                 durable: true,
                 exclusive: false,
                 autoDelete: false,

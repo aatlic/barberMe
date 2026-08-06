@@ -51,6 +51,8 @@ namespace BarberMe.Model.Requests.User
 
         public int? BarberLevelId { get; set; }
 
-        public bool RequirePasswordChange { get; set; } = true;
+        public bool RequirePasswordChange { get; set; } = true; 
+        public bool ReceiveNewsletter { get; set; }
+
     }
 }
