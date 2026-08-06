@@ -1,10 +1,11 @@
-using System.Text;
-using System.Text.Json;
 using BarberMe.Model.Messaging;
+using BarberMe.Worker.Helpers;
 using BarberMe.Worker.Services;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using System.Text;
+using System.Text.Json;
 
 namespace BarberMe.Worker
 {
@@ -149,15 +150,22 @@ namespace BarberMe.Worker
                         "RabbitMQ message could not be deserialized.");
                 }
 
-                await using var scope =
-                    _serviceScopeFactory.CreateAsyncScope();
+                await RabbitMqRetryHelper.ExecuteAsync(
+                    async () =>
+                    {
+                        await using var scope =
+                            _serviceScopeFactory.CreateAsyncScope();
 
-                var notificationProcessor =
-                    scope.ServiceProvider
-                        .GetRequiredService<INotificationProcessor>();
+                        var notificationProcessor =
+                            scope.ServiceProvider
+                                .GetRequiredService<INotificationProcessor>();
 
-                await notificationProcessor.ProcessAsync(
-                    message,
+                        await notificationProcessor.ProcessAsync(
+                            message,
+                            cancellationToken);
+                    },
+                    _logger,
+                    $"Notification processing for user {message.UserId}",
                     cancellationToken);
 
                 await _channel.BasicAckAsync(

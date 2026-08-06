@@ -3,6 +3,7 @@ using BarberMe.Database.Context;
 using BarberMe.Database.Models;
 using BarberMe.Model.Enum;
 using BarberMe.Model.Exceptions;
+using BarberMe.Model.Messaging;
 using BarberMe.Model.Requests.Support;
 using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.Support;
@@ -17,11 +18,16 @@ namespace BarberMe.Services.Services
     {
         private readonly BarberMeDbContext _context;
         private readonly IMapper _mapper;
+        private readonly ISupportRequestEmailPublisher _supportRequestEmailPublisher;
 
-        public SupportRequestService(BarberMeDbContext context, IMapper mapper)
+        public SupportRequestService(
+            BarberMeDbContext context,
+            IMapper mapper,
+            ISupportRequestEmailPublisher supportRequestEmailPublisher)
         {
             _context = context;
             _mapper = mapper;
+            _supportRequestEmailPublisher = supportRequestEmailPublisher;
         }
 
         public async Task<PagedResponse<SupportRequestResponse>> GetAsync(SupportRequestSearchObject search)
@@ -105,6 +111,17 @@ namespace BarberMe.Services.Services
 
             _context.SupportRequests.Add(entity);
             await _context.SaveChangesAsync();
+
+            await _supportRequestEmailPublisher.PublishAsync(
+                new SupportRequestEmailMessage
+                {
+                    SupportRequestId = entity.SupportRequestId,
+                    FullName = entity.FullName,
+                    Email = entity.Email,
+                    Subject = entity.Subject,
+                    Message = entity.Message,
+                    CreatedAt = entity.CreatedAt
+                });
 
             return _mapper.Map<SupportRequestResponse>(entity);
         }

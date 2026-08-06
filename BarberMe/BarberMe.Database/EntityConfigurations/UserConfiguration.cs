@@ -31,6 +31,13 @@ namespace BarberMe.Database.EntityConfigurations
                 .HasForeignKey(x => x.BarberLevelId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.Property(x => x.DiscountPercent)
+                .HasPrecision(5, 2)
+                .HasDefaultValue(0);
+
+            builder.Property(x => x.HasNoShowPenalty)
+                .HasDefaultValue(false);
+
             builder.HasData(
                 new User
                 {
@@ -53,7 +60,10 @@ namespace BarberMe.Database.EntityConfigurations
                     IsActive = true,
                     RequirePasswordChange = false,
                     ReceiveNewsletter = false,
-                    CreatedAt = new DateTime(2026, 1, 1)
+                    CreatedAt = new DateTime(2026, 1, 1),
+
+                    DiscountPercent = 0,
+                    HasNoShowPenalty = false,
                 },
                 new User
                 {
@@ -77,7 +87,10 @@ namespace BarberMe.Database.EntityConfigurations
                     IsActive = true,
                     RequirePasswordChange = false,
                     ReceiveNewsletter = false,
-                    CreatedAt = new DateTime(2026, 1, 1)
+                    CreatedAt = new DateTime(2026, 1, 1),
+
+                    DiscountPercent = 0,
+                    HasNoShowPenalty = false,
                 },
                 new User
                 {
@@ -102,7 +115,10 @@ namespace BarberMe.Database.EntityConfigurations
                     RequirePasswordChange = false,
                     ReceiveNewsletter = true,
 
-                    CreatedAt = new DateTime(2026, 1, 1)
+                    CreatedAt = new DateTime(2026, 1, 1),
+
+                    DiscountPercent = 0,
+                    HasNoShowPenalty = false,
                 }
             );
         }

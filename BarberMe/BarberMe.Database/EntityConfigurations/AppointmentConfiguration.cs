@@ -14,6 +14,18 @@ namespace BarberMe.Database.EntityConfigurations
             builder.Property(x => x.EndDateTime).IsRequired();
             builder.Property(x => x.CancellationReason).HasMaxLength(500);
 
+            builder.Property(x => x.BasePrice)
+                .HasPrecision(18, 2);
+
+            builder.Property(x => x.AppliedDiscountPercent)
+                .HasPrecision(5, 2);
+
+            builder.Property(x => x.AppliedPenaltyPercent)
+                .HasPrecision(5, 2);
+
+            builder.Property(x => x.FinalPrice)
+                .HasPrecision(18, 2);
+
             builder.HasOne(x => x.Client)
                 .WithMany()
                 .HasForeignKey(x => x.ClientId)

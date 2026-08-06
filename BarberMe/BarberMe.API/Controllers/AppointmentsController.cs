@@ -84,5 +84,14 @@ namespace BarberMe.API.Controllers
         {
             return await _service.RescheduleAsync(id, request);
         }
+
+        [HttpPost("{id}/no-show")]
+        [Authorize(Roles = $"{Roles.Admin},{Roles.Barber}")]
+        public async Task<IActionResult> MarkAsNoShow(int id)
+        {
+            await _service.MarkAsNoShowAsync(id);
+
+            return NoContent();
+        }
     }
 }

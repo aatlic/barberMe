@@ -20,6 +20,10 @@
         public AppointmentStatus AppointmentStatus { get; set; } = null!;
 
         public bool IsPaid { get; set; }
+        public decimal BasePrice { get; set; }
+        public decimal AppliedDiscountPercent { get; set; }
+        public decimal AppliedPenaltyPercent { get; set; }
+        public decimal FinalPrice { get; set; }
         public bool ReminderEnabled { get; set; }
         public DateTime? Reminder24hSentAt { get; set; }
         public DateTime? Reminder1hSentAt { get; set; }

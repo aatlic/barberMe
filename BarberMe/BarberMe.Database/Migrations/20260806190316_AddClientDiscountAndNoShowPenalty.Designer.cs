@@ -4,6 +4,7 @@ using BarberMe.Database.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BarberMe.Database.Migrations
 {
     [DbContext(typeof(BarberMeDbContext))]
-    partial class BarberMeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260806190316_AddClientDiscountAndNoShowPenalty")]
+    partial class AddClientDiscountAndNoShowPenalty
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -160,11 +163,6 @@ namespace BarberMe.Database.Migrations
                         {
                             AppointmentStatusId = 4,
                             Name = "Completed"
-                        },
-                        new
-                        {
-                            AppointmentStatusId = 5,
-                            Name = "NoShow"
                         });
                 });
 

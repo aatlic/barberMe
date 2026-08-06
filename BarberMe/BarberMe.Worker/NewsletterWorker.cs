@@ -1,5 +1,6 @@
 ﻿using BarberMe.Model.Messaging;
 using BarberMe.Worker.Configuration;
+using BarberMe.Worker.Helpers;
 using BarberMe.Worker.Services;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
@@ -66,15 +67,22 @@ namespace BarberMe.Worker
 
                     if (message != null)
                     {
-                        using var scope =
-                            _scopeFactory.CreateScope();
+                        await RabbitMqRetryHelper.ExecuteAsync(
+                            async () =>
+                            {
+                                using var scope =
+                                    _scopeFactory.CreateScope();
 
-                        var processor =
-                            scope.ServiceProvider
-                                .GetRequiredService<INewsletterProcessor>();
+                                var processor =
+                                    scope.ServiceProvider
+                                        .GetRequiredService<INewsletterProcessor>();
 
-                        await processor.ProcessAsync(
-                            message,
+                                await processor.ProcessAsync(
+                                    message,
+                                    stoppingToken);
+                            },
+                            _logger,
+                            $"Newsletter processing for event {message.EventType}",
                             stoppingToken);
                     }
 

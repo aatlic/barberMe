@@ -21,7 +21,8 @@ namespace BarberMe.Database.EntityConfigurations
                 new AppointmentStatus { AppointmentStatusId = 1, Name = "Pending" },
                 new AppointmentStatus { AppointmentStatusId = 2, Name = "Confirmed" },
                 new AppointmentStatus { AppointmentStatusId = 3, Name = "Cancelled" },
-                new AppointmentStatus { AppointmentStatusId = 4, Name = "Completed" }
+                new AppointmentStatus { AppointmentStatusId = 4, Name = "Completed" },
+                new AppointmentStatus { AppointmentStatusId = 5, Name = "NoShow" }
             );
         }
     }
