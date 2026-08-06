@@ -51,6 +51,7 @@ builder.Services.AddHttpClient<
 builder.Services.AddHostedService<Worker>();
 builder.Services.AddHostedService<AppointmentReminderWorker>();
 builder.Services.AddHostedService<NewsletterWorker>();
+builder.Services.AddHostedService<PasswordResetEmailWorker>();
 
 var host = builder.Build();
 
