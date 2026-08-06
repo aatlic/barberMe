@@ -155,6 +155,7 @@ builder.Services.Configure<RabbitMQSettings>(
     builder.Configuration.GetSection("RabbitMQ"));
 builder.Services.AddSingleton<RabbitMQConnection>();
 builder.Services.AddSingleton<IRabbitMQPublisher, RabbitMQPublisher>();
+builder.Services.AddScoped<INewsletterPublisher, NewsletterPublisher>();
 
 builder.Services.AddSignalR();
 

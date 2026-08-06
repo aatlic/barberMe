@@ -19,6 +19,7 @@
         public int FailedLoginAttempts { get; set; }
 
         public bool RequirePasswordChange { get; set; }
+        public bool ReceiveNewsletter { get; set; }
 
         public RoleResponse Role { get; set; } = null!;
 

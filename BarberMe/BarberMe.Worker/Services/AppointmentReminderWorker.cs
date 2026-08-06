@@ -30,6 +30,14 @@ namespace BarberMe.Worker.Services
                 {
                     await ProcessRemindersAsync(stoppingToken);
                 }
+                catch (OperationCanceledException)
+                    when (stoppingToken.IsCancellationRequested)
+                {
+                    _logger.LogInformation(
+                        "Appointment reminder worker is stopping.");
+
+                    break;
+                }
                 catch (Exception exception)
                 {
                     _logger.LogError(
@@ -37,9 +45,17 @@ namespace BarberMe.Worker.Services
                         "An error occurred while processing appointment reminders.");
                 }
 
-                await Task.Delay(
-                    TimeSpan.FromMinutes(5),
-                    stoppingToken);
+                try
+                {
+                    await Task.Delay(
+                        TimeSpan.FromMinutes(5),
+                        stoppingToken);
+                }
+                catch (OperationCanceledException)
+                    when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
             }
         }
 

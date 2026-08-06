@@ -4,6 +4,7 @@ using BarberMe.Database.Models;
 using BarberMe.Model.Constants;
 using BarberMe.Model.Enum;
 using BarberMe.Model.Exceptions;
+using BarberMe.Model.Messaging;
 using BarberMe.Model.Requests.Auth;
 using BarberMe.Model.Requests.User;
 using BarberMe.Model.Responses;
@@ -23,16 +24,19 @@ namespace BarberMe.Services.Services
         private readonly IMapper _mapper;
         private readonly IJwtService _jwtService;
         private readonly ICurrentUserService _currentUserService;
+        private readonly INewsletterPublisher _newsletterPublisher;
         public UserService(
             BarberMeDbContext context,
             IMapper mapper,
             IJwtService jwtService,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            INewsletterPublisher newsletterPublisher)
         {
             _context = context;
             _mapper = mapper;
             _jwtService = jwtService;
             _currentUserService = currentUserService;
+            _newsletterPublisher = newsletterPublisher;
         }
 
         private int GetCurrentUserId()
@@ -203,11 +207,30 @@ namespace BarberMe.Services.Services
             entity.LockedUntil = null;
 
             entity.RequirePasswordChange = request.RequirePasswordChange;
+            entity.ReceiveNewsletter = request.ReceiveNewsletter;
 
             entity.CreatedAt = DateTime.UtcNow;
 
             _context.Users.Add(entity);
             await _context.SaveChangesAsync();
+
+            if (role.Name == Roles.Barber)
+            {
+                await _newsletterPublisher.PublishAsync(
+                    new NewsletterMessage
+                    {
+                        Subject = "Novi barber je dostupan u Barber Me",
+
+                        Body =
+                            $"Sa zadovoljstvom vas obavještavamo da se našem timu pridružio novi barber: " +
+                            $"{entity.FirstName} {entity.LastName}.\n\n" +
+                            "Rezervišite svoj termin putem Barber Me aplikacije.",
+
+                        EventType = "BarberCreated",
+
+                        CreatedAt = DateTime.UtcNow
+                    });
+            }
 
             var user = await _context.Users
                 .Include(x => x.Role)
@@ -287,6 +310,7 @@ namespace BarberMe.Services.Services
             user.LastName = request.LastName.Trim();
             user.Email = request.Email.Trim();
             user.PhoneNumber = request.PhoneNumber.Trim();
+            user.ReceiveNewsletter = request.ReceiveNewsletter;
 
             await _context.SaveChangesAsync();
 
