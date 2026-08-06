@@ -121,11 +121,21 @@ namespace BarberMe.Services
                         Status =
                             appointment.AppointmentStatus.Name,
 
-                        Price =
-                            appointment.BarberService.Price,
+                        BasePrice = appointment.BasePrice > 0
+                            ? appointment.BasePrice
+                            : appointment.BarberService.Price,
 
-                        IsPaid =
-                            appointment.IsPaid
+                                                AppliedDiscountPercent =
+                            appointment.AppliedDiscountPercent,
+
+                                                AppliedPenaltyPercent =
+                            appointment.AppliedPenaltyPercent,
+
+                                                FinalPrice = appointment.FinalPrice > 0
+                            ? appointment.FinalPrice
+                            : appointment.BarberService.Price,
+
+                        IsPaid = appointment.IsPaid
                     })
                 .ToList();
 

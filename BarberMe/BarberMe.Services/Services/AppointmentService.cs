@@ -647,25 +647,10 @@ namespace BarberMe.Services.Services
                     "You can only manage your own appointments.");
             }
 
-            if (appointment.AppointmentStatusId ==
-                (int)AppointmentStatusType.Cancelled)
+            if (appointment.AppointmentStatusId != (int)AppointmentStatusType.Pending)
             {
                 throw new BusinessException(
-                    "A cancelled appointment cannot be marked as no-show.");
-            }
-
-            if (appointment.AppointmentStatusId ==
-                (int)AppointmentStatusType.Completed)
-            {
-                throw new BusinessException(
-                    "A completed appointment cannot be marked as no-show.");
-            }
-
-            if (appointment.AppointmentStatusId ==
-                (int)AppointmentStatusType.NoShow)
-            {
-                throw new BusinessException(
-                    "Appointment is already marked as no-show.");
+                    "Only a pending appointment can be marked as no-show.");
             }
 
             if (appointment.StartDateTime > DateTime.UtcNow)

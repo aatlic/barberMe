@@ -23,7 +23,7 @@ namespace BarberMe.Services.Documents
         {
             container.Page(page =>
             {
-                page.Size(PageSizes.A4);
+                page.Size(PageSizes.A4.Landscape());
                 page.Margin(30);
                 page.DefaultTextStyle(x => x.FontSize(10));
 
@@ -247,11 +247,14 @@ namespace BarberMe.Services.Documents
                 table.ColumnsDefinition(columns =>
                 {
                     columns.ConstantColumn(25);
-                    columns.RelativeColumn(2);
-                    columns.RelativeColumn(2);
-                    columns.RelativeColumn(2);
-                    columns.RelativeColumn(1.4f);
-                    columns.RelativeColumn(1.2f);
+                    columns.RelativeColumn(1.8f);
+                    columns.RelativeColumn(1.8f);
+                    columns.RelativeColumn(1.8f);
+                    columns.RelativeColumn(1.5f);
+                    columns.RelativeColumn(1.1f);
+                    columns.RelativeColumn(0.7f);
+                    columns.RelativeColumn();
+                    columns.RelativeColumn(0.8f);
                     columns.RelativeColumn(0.8f);
                     columns.RelativeColumn();
                 });
@@ -265,13 +268,16 @@ namespace BarberMe.Services.Documents
                     header.Cell().Element(HeaderCell).Text("Date");
                     header.Cell().Element(HeaderCell).Text("Status");
                     header.Cell().Element(HeaderCell).Text("Paid");
-                    header.Cell().Element(HeaderCell).Text("Price");
+                    header.Cell().Element(HeaderCell).Text("Base");
+                    header.Cell().Element(HeaderCell).Text("Discount");
+                    header.Cell().Element(HeaderCell).Text("Penalty");
+                    header.Cell().Element(HeaderCell).Text("Final");
                 });
 
                 if (_report.Appointments.Count == 0)
                 {
                     table.Cell()
-                        .ColumnSpan(8)
+                        .ColumnSpan(11)
                         .Element(BodyCell)
                         .AlignCenter()
                         .Text("No appointments found for the selected period.");
@@ -316,7 +322,21 @@ namespace BarberMe.Services.Documents
 
                     table.Cell()
                         .Element(BodyCell)
-                        .Text($"{appointment.Price:N2} KM");
+                        .Text($"{appointment.BasePrice:N2} KM");
+
+                    table.Cell()
+                        .Element(BodyCell)
+                        .AlignCenter()
+                        .Text($"{appointment.AppliedDiscountPercent:N2}%");
+
+                    table.Cell()
+                        .Element(BodyCell)
+                        .AlignCenter()
+                        .Text($"{appointment.AppliedPenaltyPercent:N2}%");
+
+                    table.Cell()
+                        .Element(BodyCell)
+                        .Text($"{appointment.FinalPrice:N2} KM");
 
                     index++;
                 }

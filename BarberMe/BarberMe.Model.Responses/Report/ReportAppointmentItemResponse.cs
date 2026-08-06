@@ -12,7 +12,14 @@
 
         public string Status { get; set; } = string.Empty;
 
-        public decimal Price { get; set; }
+        public decimal BasePrice { get; set; }
+
+        public decimal AppliedDiscountPercent { get; set; }
+
+        public decimal AppliedPenaltyPercent { get; set; }
+
+        public decimal FinalPrice { get; set; }
+
         public bool IsPaid { get; set; }
     }
 }

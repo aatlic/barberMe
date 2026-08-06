@@ -64,7 +64,7 @@ namespace BarberMe.Services.Services
                     "A cancelled appointment cannot be paid.");
             }
 
-            var amount = appointment.BarberService.Price;
+            var amount = appointment.FinalPrice;
 
             if (amount <= 0)
             {
