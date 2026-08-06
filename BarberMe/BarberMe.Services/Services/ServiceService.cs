@@ -10,6 +10,7 @@ using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Helpers;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace BarberMe.Services.Services
 {
@@ -18,19 +19,35 @@ namespace BarberMe.Services.Services
         private readonly BarberMeDbContext _context;
         private readonly IMapper _mapper;
         private readonly INewsletterPublisher _newsletterPublisher;
+        private readonly IMemoryCache _cache;
+        private const string ServicesCacheKey = "services";
 
         public ServiceService(
             BarberMeDbContext context,
             IMapper mapper,
-            INewsletterPublisher newsletterPublisher)
+            INewsletterPublisher newsletterPublisher,
+            IMemoryCache cache)
         {
             _context = context;
             _mapper = mapper;
             _newsletterPublisher = newsletterPublisher;
+            _cache = cache;
         }
 
         public async Task<PagedResponse<ServiceResponse>> GetAsync(ServiceSearchObject search)
         {
+            if (string.IsNullOrWhiteSpace(search.FTS)
+                && (search.Page ?? 1) == 1
+                && (search.PageSize ?? 10) == 10)
+            {
+                if (_cache.TryGetValue(
+                    ServicesCacheKey,
+                    out PagedResponse<ServiceResponse>? cached))
+                {
+                    return cached!;
+                }
+            }
+
             var query = _context.Services.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search.FTS))
@@ -59,13 +76,25 @@ namespace BarberMe.Services.Services
                 .Take(pageSize)
                 .ToListAsync();
 
-            return new PagedResponse<ServiceResponse>
+            var response = new PagedResponse<ServiceResponse>
             {
                 Items = _mapper.Map<List<ServiceResponse>>(list),
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize
             };
+
+            if (string.IsNullOrWhiteSpace(search.FTS)
+                && page == 1
+                && pageSize == 10)
+            {
+                _cache.Set(
+                    ServicesCacheKey,
+                    response,
+                    TimeSpan.FromMinutes(5));
+            }
+
+            return response;
         }
 
         public async Task<ServiceResponse?> GetByIdAsync(int id)
@@ -118,6 +147,8 @@ namespace BarberMe.Services.Services
 
             _context.Services.Add(entity);
             await _context.SaveChangesAsync();
+
+            _cache.Remove(ServicesCacheKey);
 
             await _newsletterPublisher.PublishAsync(
                 new NewsletterMessage
@@ -187,6 +218,8 @@ namespace BarberMe.Services.Services
 
             await _context.SaveChangesAsync();
 
+            _cache.Remove(ServicesCacheKey);
+
             if (oldPrice != entity.DefaultPrice)
             {
                 await _newsletterPublisher.PublishAsync(
@@ -223,6 +256,8 @@ namespace BarberMe.Services.Services
             entity.IsActive = false;
 
             await _context.SaveChangesAsync();
+
+            _cache.Remove(ServicesCacheKey);
 
             return true;
         }

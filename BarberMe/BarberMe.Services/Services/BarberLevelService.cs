@@ -1,13 +1,14 @@
 ﻿using AutoMapper;
 using BarberMe.Database.Context;
 using BarberMe.Database.Models;
+using BarberMe.Model.Exceptions;
 using BarberMe.Model.Requests.BarberLevel;
 using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.User;
 using BarberMe.Model.SearchObjects;
 using BarberMe.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using BarberMe.Model.Exceptions;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace BarberMe.Services.Services
 {
@@ -15,22 +16,39 @@ namespace BarberMe.Services.Services
     {
         private readonly BarberMeDbContext _context;
         private readonly IMapper _mapper;
+        private const string BarberLevelsCacheKey = "barber-levels";
 
+        private readonly IMemoryCache _cache;
         public BarberLevelService(
             BarberMeDbContext context,
-            IMapper mapper)
+            IMapper mapper,
+            IMemoryCache cache)
         {
             _context = context;
             _mapper = mapper;
+            _cache = cache;
         }
 
         public async Task<PagedResponse<BarberLevelResponse>> GetAsync(BarberLevelSearchObject search)
         {
+            if (string.IsNullOrWhiteSpace(search.FTS)
+                && (search.Page ?? 1) == 1
+                && (search.PageSize ?? 10) == 10)
+            {
+                if (_cache.TryGetValue(
+                    BarberLevelsCacheKey,
+                    out PagedResponse<BarberLevelResponse>? cached))
+                {
+                    return cached!;
+                }
+            }
+
             var query = _context.BarberLevels.AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(search.Name))
+            if (!string.IsNullOrWhiteSpace(search.FTS))
             {
-                query = query.Where(x => x.Name.Contains(search.Name));
+                query = query.Where(x =>
+                    x.Name.Contains(search.FTS));
             }
 
             var totalCount = await query.CountAsync();
@@ -53,13 +71,25 @@ namespace BarberMe.Services.Services
                 .Take(pageSize)
                 .ToListAsync();
 
-            return new PagedResponse<BarberLevelResponse>
+            var response = new PagedResponse<BarberLevelResponse>
             {
                 Items = _mapper.Map<List<BarberLevelResponse>>(list),
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize
             };
+
+            if (string.IsNullOrWhiteSpace(search.FTS)
+                && page == 1
+                && pageSize == 10)
+            {
+                _cache.Set(
+                    BarberLevelsCacheKey,
+                    response,
+                    TimeSpan.FromMinutes(10));
+            }
+
+            return response;
         }
 
         public async Task<BarberLevelResponse?> GetByIdAsync(int id)
@@ -90,6 +120,8 @@ namespace BarberMe.Services.Services
             _context.BarberLevels.Add(entity);
             await _context.SaveChangesAsync();
 
+            _cache.Remove(BarberLevelsCacheKey);
+
             return _mapper.Map<BarberLevelResponse>(entity);
         }
 
@@ -113,6 +145,8 @@ namespace BarberMe.Services.Services
             _mapper.Map(request, entity);
             await _context.SaveChangesAsync();
 
+            _cache.Remove(BarberLevelsCacheKey);
+
             return _mapper.Map<BarberLevelResponse>(entity);
         }
 
@@ -130,6 +164,8 @@ namespace BarberMe.Services.Services
             entity.IsActive = false;
 
             await _context.SaveChangesAsync();
+
+            _cache.Remove(BarberLevelsCacheKey);
 
             return true;
         }
