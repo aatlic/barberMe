@@ -20,6 +20,9 @@
 
         public bool RequirePasswordChange { get; set; }
         public bool ReceiveNewsletter { get; set; }
+        public decimal DiscountPercent { get; set; }
+
+        public bool HasNoShowPenalty { get; set; }
 
         public RoleResponse Role { get; set; } = null!;
 
