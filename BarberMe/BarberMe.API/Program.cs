@@ -158,6 +158,8 @@ builder.Services.AddSingleton<IRabbitMQPublisher, RabbitMQPublisher>();
 builder.Services.AddScoped<INewsletterPublisher, NewsletterPublisher>();
 builder.Services.AddScoped<IPasswordResetEmailPublisher,PasswordResetEmailPublisher>();
 builder.Services.AddScoped<ISupportRequestEmailPublisher, SupportRequestEmailPublisher>();
+builder.Services.AddScoped<IShopSettingsService, ShopSettingsService>();
+builder.Services.AddScoped<IShopWorkingHoursService, ShopWorkingHoursService>();
 builder.Services.AddSignalR();
 builder.Services.AddMemoryCache();
 

@@ -5,21 +5,9 @@ import 'package:http/http.dart' as http;
 
 import '../models/login_response.dart';
 
-import 'dart:io';
+import '../core/config/api_config.dart';
 
 class AuthService {
-  String get _baseUrl {
-    if (Platform.isAndroid) {
-      return 'http://10.0.2.2:5011';
-    }
-
-    if (Platform.isWindows) {
-      return 'http://localhost:5011';
-    }
-
-    throw UnsupportedError('Unsupported platform.');
-  }
-  
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   Future<LoginResponse> login({
@@ -27,7 +15,7 @@ class AuthService {
     required String password,
   }) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/api/Users/login'),
+      Uri.parse('${ApiConfig.baseUrl}/api/Users/login'),
       headers: {
         'Content-Type': 'application/json',
       },

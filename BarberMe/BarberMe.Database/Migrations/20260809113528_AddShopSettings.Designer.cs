@@ -4,6 +4,7 @@ using BarberMe.Database.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BarberMe.Database.Migrations
 {
     [DbContext(typeof(BarberMeDbContext))]
-    partial class BarberMeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260809113528_AddShopSettings")]
+    partial class AddShopSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -810,92 +813,6 @@ namespace BarberMe.Database.Migrations
                             Email = "Not configured",
                             Name = "Barber Me",
                             PhoneNumber = "Not configured"
-                        });
-                });
-
-            modelBuilder.Entity("BarberMe.Database.Models.ShopWorkingHours", b =>
-                {
-                    b.Property<int>("ShopWorkingHoursId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShopWorkingHoursId"));
-
-                    b.Property<int>("DayOfWeek")
-                        .HasColumnType("int");
-
-                    b.Property<TimeSpan>("EndTime")
-                        .HasColumnType("time");
-
-                    b.Property<bool>("IsWorking")
-                        .HasColumnType("bit");
-
-                    b.Property<TimeSpan>("StartTime")
-                        .HasColumnType("time");
-
-                    b.HasKey("ShopWorkingHoursId");
-
-                    b.HasIndex("DayOfWeek")
-                        .IsUnique();
-
-                    b.ToTable("ShopWorkingHours");
-
-                    b.HasData(
-                        new
-                        {
-                            ShopWorkingHoursId = 1,
-                            DayOfWeek = 1,
-                            EndTime = new TimeSpan(0, 20, 0, 0, 0),
-                            IsWorking = true,
-                            StartTime = new TimeSpan(0, 8, 0, 0, 0)
-                        },
-                        new
-                        {
-                            ShopWorkingHoursId = 2,
-                            DayOfWeek = 2,
-                            EndTime = new TimeSpan(0, 20, 0, 0, 0),
-                            IsWorking = true,
-                            StartTime = new TimeSpan(0, 8, 0, 0, 0)
-                        },
-                        new
-                        {
-                            ShopWorkingHoursId = 3,
-                            DayOfWeek = 3,
-                            EndTime = new TimeSpan(0, 20, 0, 0, 0),
-                            IsWorking = true,
-                            StartTime = new TimeSpan(0, 8, 0, 0, 0)
-                        },
-                        new
-                        {
-                            ShopWorkingHoursId = 4,
-                            DayOfWeek = 4,
-                            EndTime = new TimeSpan(0, 20, 0, 0, 0),
-                            IsWorking = true,
-                            StartTime = new TimeSpan(0, 8, 0, 0, 0)
-                        },
-                        new
-                        {
-                            ShopWorkingHoursId = 5,
-                            DayOfWeek = 5,
-                            EndTime = new TimeSpan(0, 20, 0, 0, 0),
-                            IsWorking = true,
-                            StartTime = new TimeSpan(0, 8, 0, 0, 0)
-                        },
-                        new
-                        {
-                            ShopWorkingHoursId = 6,
-                            DayOfWeek = 6,
-                            EndTime = new TimeSpan(0, 16, 0, 0, 0),
-                            IsWorking = true,
-                            StartTime = new TimeSpan(0, 8, 0, 0, 0)
-                        },
-                        new
-                        {
-                            ShopWorkingHoursId = 7,
-                            DayOfWeek = 0,
-                            EndTime = new TimeSpan(0, 0, 0, 0, 0),
-                            IsWorking = false,
-                            StartTime = new TimeSpan(0, 0, 0, 0, 0)
                         });
                 });
 

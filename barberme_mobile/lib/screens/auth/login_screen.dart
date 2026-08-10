@@ -3,7 +3,7 @@ import '../../services/auth_service.dart';
 
 import '../desktop/admin/admin_home_screen.dart';
 import '../mobile/barber/barber_home_screen.dart';
-import '../mobile/client/client_home_screen.dart';
+import '../mobile/client/client_main_screen.dart';
 
 import 'dart:io';
 
@@ -157,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                             if (Platform.isAndroid) {
                               if (roleName == 'Client') {
-                                destination = const ClientHomeScreen();
+                                destination = const ClientMainScreen();
                               } else if (roleName == 'Barber' || roleName == 'Admin') {
                                 destination = const BarberHomeScreen();
                               } else {
