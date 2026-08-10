@@ -28,6 +28,8 @@ namespace BarberMe.Database.Context
         public DbSet<Recommendation> Recommendations { get; set; }
         public DbSet<RecommendationFeedback> RecommendationFeedbacks { get; set; }
         public DbSet<SupportRequest> SupportRequests { get; set; }
+        public DbSet<ShopSettings> ShopSettings { get; set; }
+        public DbSet<ShopWorkingHours> ShopWorkingHours { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -1,5 +1,4 @@
-﻿using BarberMe.Database;
-using BarberMe.Database.Context;
+﻿using BarberMe.Database.Context;
 using BarberMe.Model.Exceptions;
 using BarberMe.Model.Responses.Report;
 using BarberMe.Model.SearchObjects;
