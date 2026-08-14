@@ -127,15 +127,20 @@ namespace BarberMe.Services.Services
 
         public async Task<AppointmentResponse> InsertAsync(AppointmentInsertRequest request)
         {
-            var clientId = request.ClientId;
+            int clientId;
 
             if (_currentUserService.Role == Roles.Client)
             {
                 clientId = _currentUserService.UserId;
             }
-            else if (clientId <= 0)
+            else
             {
-                throw new BusinessException("Client is required.");
+                if (!request.ClientId.HasValue || request.ClientId.Value <= 0)
+                {
+                    throw new BusinessException("Client is required.");
+                }
+
+                clientId = request.ClientId.Value;
             }
 
             if (request.BarberServiceId <= 0)
@@ -679,6 +684,48 @@ namespace BarberMe.Services.Services
                     EventType = "AppointmentNoShow",
                     CreatedAt = DateTime.UtcNow
                 });
+        }
+
+        public async Task UpdateReminderAsync(
+    int appointmentId,
+    AppointmentReminderRequest request)
+        {
+            var appointment = await _context.Appointments
+                .FirstOrDefaultAsync(x =>
+                    x.AppointmentId == appointmentId);
+
+            if (appointment == null)
+            {
+                throw new NotFoundException(
+                    "Appointment does not exist.");
+            }
+
+            ValidateAppointmentAccess(appointment);
+
+            if (appointment.AppointmentStatusId ==
+                (int)AppointmentStatusType.Cancelled)
+            {
+                throw new BusinessException(
+                    "Reminder cannot be changed for a cancelled appointment.");
+            }
+
+            if (appointment.AppointmentStatusId ==
+                (int)AppointmentStatusType.Completed)
+            {
+                throw new BusinessException(
+                    "Reminder cannot be changed for a completed appointment.");
+            }
+
+            if (appointment.StartDateTime <= DateTime.UtcNow)
+            {
+                throw new BusinessException(
+                    "Reminder cannot be changed for a past appointment.");
+            }
+
+            appointment.ReminderEnabled =
+                request.ReminderEnabled;
+
+            await _context.SaveChangesAsync();
         }
     }
 }

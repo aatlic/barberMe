@@ -924,5 +924,21 @@ namespace BarberMe.Services.Services
 
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<UserResponse>> GetActiveBarbersAsync()
+        {
+            var barbers = await _context.Users
+                .AsNoTracking()
+                .Include(x => x.Role)
+                .Include(x => x.BarberLevel)
+                .Where(x =>
+                    x.IsActive &&
+                    x.Role.Name == Roles.Barber)
+                .OrderBy(x => x.FirstName)
+                .ThenBy(x => x.LastName)
+                .ToListAsync();
+
+            return _mapper.Map<List<UserResponse>>(barbers);
+        }
     }
 }

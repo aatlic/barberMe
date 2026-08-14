@@ -170,5 +170,30 @@ namespace BarberMe.Services.Services
 
             return true;
         }
+
+        public async Task<List<BarberServiceResponse>> GetForBookingAsync(int barberId)
+        {
+            if (barberId <= 0)
+                throw new BusinessException("Barber is required.");
+
+            var barberExists = await _context.Users
+                .AnyAsync(x => x.UserId == barberId && x.IsActive);
+
+            if (!barberExists)
+                throw new NotFoundException("Barber does not exist.");
+
+            var list = await _context.BarberServices
+                .AsNoTracking()
+                .Include(x => x.Barber)
+                .Include(x => x.Service)
+                .Where(x =>
+                    x.BarberId == barberId &&
+                    x.Barber.IsActive &&
+                    x.Service.IsActive)
+                .OrderBy(x => x.Service.Name)
+                .ToListAsync();
+
+            return _mapper.Map<List<BarberServiceResponse>>(list);
+        }
     }
 }

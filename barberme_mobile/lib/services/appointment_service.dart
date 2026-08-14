@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../core/config/api_config.dart';
 import '../models/appointment.dart';
 import '../models/paged_response.dart';
+import '../models/available_slot.dart';
 
 class AppointmentService {
   final FlutterSecureStorage _storage =
@@ -65,5 +66,134 @@ class AppointmentService {
     }
 
     throw Exception('Failed to load appointments.');
+  }
+
+  Future<List<AvailableSlot>> getAvailableSlots({
+    required int barberId,
+    required int serviceId,
+    required DateTime date,
+  }) async {
+    final token = await _storage.read(key: 'jwt_token');
+
+    final formattedDate =
+        '${date.year.toString().padLeft(4, '0')}-'
+        '${date.month.toString().padLeft(2, '0')}-'
+        '${date.day.toString().padLeft(2, '0')}';
+
+    final uri = Uri.parse(
+      '${ApiConfig.baseUrl}/api/Appointments/available-slots',
+    ).replace(
+      queryParameters: {
+        'barberId': barberId.toString(),
+        'serviceId': serviceId.toString(),
+        'date': formattedDate,
+      },
+    );
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      final data = jsonDecode(response.body) as List<dynamic>;
+
+      return data
+          .map(
+            (item) => AvailableSlot.fromJson(
+              item as Map<String, dynamic>,
+            ),
+          )
+          .toList();
+    }
+
+    throw Exception(
+      'Failed to load available time slots.',
+    );
+  }
+
+  Future<Appointment> createAppointment({
+    required int barberServiceId,
+    required DateTime startDateTime,
+    bool reminderEnabled = false,
+  }) async {
+    final token = await _storage.read(key: 'jwt_token');
+
+    final response = await http.post(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/api/Appointments',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'barberServiceId': barberServiceId,
+        'startDateTime': startDateTime.toIso8601String(),
+        'reminderEnabled': reminderEnabled,
+      }),
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      final data =
+          jsonDecode(response.body) as Map<String, dynamic>;
+
+      return Appointment.fromJson(data);
+    }
+
+    String message = 'Failed to book appointment.';
+
+    try {
+      final data =
+          jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (data['message'] != null) {
+        message = data['message'].toString();
+      }
+    } catch (_) {}
+    
+    throw Exception(message);
+  }
+
+  Future<void> updateReminder({
+    required int appointmentId,
+    required bool reminderEnabled,
+  }) async {
+    final token = await _storage.read(key: 'jwt_token');
+
+    final response = await http.put(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/api/Appointments/$appointmentId/reminder',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'reminderEnabled': reminderEnabled,
+      }),
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      return;
+    }
+
+    String message = 'Failed to update reminder.';
+
+    try {
+      final data =
+          jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (data['message'] != null) {
+        message = data['message'].toString();
+      }
+    } catch (_) {}
+
+    throw Exception(message);
   }
 }

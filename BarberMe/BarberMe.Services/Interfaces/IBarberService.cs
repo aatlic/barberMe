@@ -11,5 +11,6 @@ namespace BarberMe.Services.Interfaces
                     BarberServiceInsertRequest,
                     BarberServiceUpdateRequest>
     {
+        Task<List<BarberServiceResponse>> GetForBookingAsync(int barberId);
     }
 }
