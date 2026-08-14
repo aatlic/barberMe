@@ -93,5 +93,15 @@ namespace BarberMe.API.Controllers
 
             return NoContent();
         }
+
+        [HttpPut("{id}/reminder")]
+        public async Task<IActionResult> UpdateReminder(
+            int id,
+            AppointmentReminderRequest request)
+        {
+            await _service.UpdateReminderAsync(id, request);
+
+            return NoContent();
+        }
     }
 }

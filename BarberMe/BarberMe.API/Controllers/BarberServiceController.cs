@@ -11,7 +11,7 @@ namespace BarberMe.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = Roles.Admin)]
+    [Authorize]
     public class BarberServicesController : ControllerBase
     {
         private readonly IBarberService _service;
@@ -22,7 +22,7 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = $"{Roles.Admin},{Roles.Barber},{Roles.Client}")]
+        [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<PagedResponse<BarberServiceResponse>> Get(
             [FromQuery] BarberServiceSearchObject search)
         {
@@ -39,6 +39,7 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult<BarberServiceResponse>> Insert(
             BarberServiceInsertRequest request)
         {
@@ -47,6 +48,7 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult<BarberServiceResponse>> Update(
             int id,
             BarberServiceUpdateRequest request)
@@ -57,11 +59,21 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult<bool>> Delete(int id)
         {
             var result = await _service.DeleteAsync(id);
 
             return Ok(true);
+        }
+
+        [HttpGet("booking")]
+        [Authorize(Roles = $"{Roles.Client},{Roles.Barber},{Roles.Admin}")]
+        public async Task<ActionResult<List<BarberServiceResponse>>> GetForBooking([FromQuery] int barberId)
+        {
+            var result = await _service.GetForBookingAsync(barberId);
+
+            return Ok(result);
         }
     }
 }

@@ -38,7 +38,16 @@ namespace BarberMe.API.Mapping
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.ServiceId));
 
             CreateMap<BarberService, BarberServiceResponse>()
-                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.BarberServiceId));
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.BarberServiceId))
+                .ForMember(
+                    dest => dest.BarberFullName,
+                    opt => opt.MapFrom(src => src.Barber.FirstName + " " + src.Barber.LastName))
+                .ForMember(
+                    dest => dest.ServiceName,
+                    opt => opt.MapFrom(src => src.Service.Name))
+                .ForMember(
+                    dest => dest.IsActive,
+                    opt => opt.MapFrom(src => src.Barber.IsActive && src.Service.IsActive));
 
             CreateMap<WorkingHours, WorkingHoursResponse>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.WorkingHoursId));

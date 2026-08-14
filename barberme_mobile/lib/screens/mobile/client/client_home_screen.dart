@@ -5,6 +5,8 @@ import '../../../models/shop_settings.dart';
 import '../../../models/shop_working_hours.dart';
 import '../../../services/shop_service.dart';
 
+import 'booking/select_barber_screen.dart';
+
 class ClientHomeScreen extends StatefulWidget {
   const ClientHomeScreen({super.key});
 
@@ -259,7 +261,11 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
               height: 54,
               child: FilledButton.icon(
                 onPressed: () {
-                  // Booking flow will be added later.
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const SelectBarberScreen(),
+                    ),
+                  );
                 },
                 icon: const Icon(
                   Icons.calendar_month_outlined,

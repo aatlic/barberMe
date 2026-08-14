@@ -5,20 +5,32 @@ import 'client_home_screen.dart';
 import 'client_profile_screen.dart';
 
 class ClientMainScreen extends StatefulWidget {
-  const ClientMainScreen({super.key});
+  final int initialIndex;
+
+  const ClientMainScreen({
+    super.key,
+    this.initialIndex = 0,
+  });
 
   @override
-  State<ClientMainScreen> createState() => _ClientMainScreenState();
+  State<ClientMainScreen> createState() =>
+      _ClientMainScreenState();
 }
 
 class _ClientMainScreenState extends State<ClientMainScreen> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
 
   static const List<Widget> _screens = [
     ClientHomeScreen(),
     ClientAppointmentsScreen(),
     ClientProfileScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
 
   void _onDestinationSelected(int index) {
     setState(() {

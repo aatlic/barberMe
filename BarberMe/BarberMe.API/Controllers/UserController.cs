@@ -218,5 +218,14 @@ namespace BarberMe.API.Controllers
                 message = "User has been activated successfully."
             });
         }
+
+        [HttpGet("barbers")]
+        [Authorize(Roles = $"{Roles.Admin},{Roles.Client}")]
+        public async Task<ActionResult<List<UserResponse>>> GetActiveBarbers()
+        {
+            var result = await _service.GetActiveBarbersAsync();
+
+            return Ok(result);
+        }
     }
 }

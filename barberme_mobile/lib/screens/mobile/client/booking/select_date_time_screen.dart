@@ -1,0 +1,519 @@
+import 'package:flutter/material.dart';
+
+import '../../../../models/available_slot.dart';
+import '../../../../models/barber_service.dart';
+import '../../../../models/user.dart';
+import '../../../../services/appointment_service.dart';
+
+import '../client_main_screen.dart';
+
+class SelectDateTimeScreen extends StatefulWidget {
+  final User barber;
+  final BarberService barberService;
+
+  const SelectDateTimeScreen({
+    super.key,
+    required this.barber,
+    required this.barberService,
+  });
+
+  @override
+  State<SelectDateTimeScreen> createState() =>
+      _SelectDateTimeScreenState();
+}
+
+class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
+  final AppointmentService _appointmentService = AppointmentService();
+  bool _isBooking = false;
+
+  DateTime? _selectedDate;
+  AvailableSlot? _selectedSlot;
+
+  List<AvailableSlot> _availableSlots = [];
+
+  bool _isLoadingSlots = false;
+  String? _errorMessage;
+
+  Future<void> _selectDate() async {
+    final now = DateTime.now();
+
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? now,
+      firstDate: DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ),
+      lastDate: DateTime(
+        now.year + 1,
+        now.month,
+        now.day,
+      ),
+    );
+
+    if (pickedDate == null) {
+      return;
+    }
+
+    setState(() {
+      _selectedDate = pickedDate;
+      _selectedSlot = null;
+      _availableSlots = [];
+      _errorMessage = null;
+    });
+
+    await _loadAvailableSlots();
+  }
+
+  Future<void> _loadAvailableSlots() async {
+    if (_selectedDate == null) {
+      return;
+    }
+
+    setState(() {
+      _isLoadingSlots = true;
+      _errorMessage = null;
+      _selectedSlot = null;
+    });
+
+    try {
+      final slots = await _appointmentService.getAvailableSlots(
+        barberId: widget.barber.id,
+        serviceId: widget.barberService.serviceId,
+        date: _selectedDate!,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _availableSlots = slots;
+        _isLoadingSlots = false;
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _errorMessage =
+            e.toString().replaceFirst('Exception: ', '');
+        _isLoadingSlots = false;
+      });
+    }
+  }
+
+  Future<void> _bookAppointment() async {
+    if (_selectedSlot == null || _isBooking) {
+      return;
+    }
+
+    setState(() {
+      _isBooking = true;
+    });
+
+    try {
+      final appointment =
+          await _appointmentService.createAppointment(
+        barberServiceId: widget.barberService.id,
+        startDateTime: _selectedSlot!.startDateTime,
+        reminderEnabled: false,
+      );
+
+      if (!mounted) return;
+
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          return AlertDialog(
+            icon: const Icon(
+              Icons.check_circle_outline,
+              size: 48,
+            ),
+            title: const Text('Appointment booked'),
+            content: const Text(
+              'Your appointment has been booked successfully.',
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                },
+                child: const Text('Continue'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (!mounted) return;
+
+      final enableReminder = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          return AlertDialog(
+            icon: const Icon(
+              Icons.notifications_outlined,
+              size: 44,
+            ),
+            title: const Text('Set a reminder?'),
+            content: const Text(
+              'Would you like to receive a reminder before your appointment?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop(false);
+                },
+                child: const Text('Not now'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop(true);
+                },
+                child: const Text('Set reminder'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (!mounted) return;
+
+      if (enableReminder == true) {
+        await _appointmentService.updateReminder(
+          appointmentId: appointment.id,
+          reminderEnabled: true,
+        );
+      }
+
+      if (!mounted) return;
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => const ClientMainScreen(
+            initialIndex: 1,
+          ),
+        ),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isBooking = false;
+        });
+      }
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+
+    return '$day.$month.${date.year}';
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+
+    return '$hour:$minute';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final barberName =
+        '${widget.barber.firstName} ${widget.barber.lastName}'.trim();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Select date & time',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  _buildBookingSummary(barberName),
+
+                  const SizedBox(height: 24),
+
+                  Text(
+                    'Date',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: _selectDate,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Colors.grey.shade300,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_month_outlined,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _selectedDate == null
+                                  ? 'Select date'
+                                  : _formatDate(_selectedDate!),
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: _selectedDate == null
+                                    ? Colors.grey.shade600
+                                    : null,
+                              ),
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  if (_selectedDate != null) ...[
+                    const SizedBox(height: 28),
+
+                    Text(
+                      'Available times',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    _buildSlots(),
+                  ],
+                ],
+              ),
+            ),
+
+            _buildBottomButton(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBookingSummary(String barberName) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.person_outline,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    barberName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                const Icon(
+                  Icons.content_cut,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.barberService.serviceName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                const Icon(
+                  Icons.schedule_outlined,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  '${widget.barberService.durationMinutes} min',
+                ),
+                const Spacer(),
+                Text(
+                  '${widget.barberService.price.toStringAsFixed(2)} BAM',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSlots() {
+    if (_isLoadingSlots) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(
+          vertical: 30,
+        ),
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: 16,
+        ),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 42,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _errorMessage!,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: _loadAvailableSlots,
+              child: const Text('Try again'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_availableSlots.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(
+          vertical: 24,
+        ),
+        child: Center(
+          child: Text(
+            'No available appointments for this date.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: _availableSlots.map((slot) {
+        final isSelected =
+            _selectedSlot?.startDateTime == slot.startDateTime;
+
+        return ChoiceChip(
+          label: Text(
+            _formatTime(slot.startDateTime),
+          ),
+          selected: isSelected,
+          onSelected: (_) {
+            setState(() {
+              _selectedSlot = slot;
+            });
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildBottomButton() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(
+        20,
+        12,
+        20,
+        20,
+      ),
+      child: FilledButton(
+        onPressed: _selectedSlot == null || _isBooking
+            ? null
+            : _bookAppointment,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: 14,
+          ),
+          child: _isBooking
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Text('Book appointment'),
+        ),
+      ),
+    );
+  }
+}
