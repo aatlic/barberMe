@@ -103,5 +103,22 @@ namespace BarberMe.API.Controllers
 
             return NoContent();
         }
+
+        [HttpGet("availability-calendar")]
+        public async Task<ActionResult<List<CalendarAvailabilityResponse>>> GetCalendarAvailability(
+            [FromQuery] int barberId,
+            [FromQuery] int serviceId,
+            [FromQuery] int year,
+            [FromQuery] int month)
+        {
+            var result =
+                await _service.GetCalendarAvailabilityAsync(
+                    barberId,
+                    serviceId,
+                    year,
+                    month);
+
+            return Ok(result);
+        }
     }
 }
