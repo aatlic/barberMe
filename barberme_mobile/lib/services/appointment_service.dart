@@ -8,6 +8,8 @@ import '../models/appointment.dart';
 import '../models/paged_response.dart';
 import '../models/available_slot.dart';
 
+import '../models/calendar_availability.dart';
+
 class AppointmentService {
   final FlutterSecureStorage _storage =
       const FlutterSecureStorage();
@@ -196,4 +198,51 @@ class AppointmentService {
 
     throw Exception(message);
   }
+
+  Future<List<CalendarAvailability>>
+    getCalendarAvailability({
+      required int barberId,
+      required int serviceId,
+      required int year,
+      required int month,
+    }) async {
+      final token = await _storage.read(key: 'jwt_token');
+
+      final uri = Uri.parse(
+        '${ApiConfig.baseUrl}/api/Appointments/availability-calendar',
+      ).replace(
+        queryParameters: {
+          'barberId': barberId.toString(),
+          'serviceId': serviceId.toString(),
+          'year': year.toString(),
+          'month': month.toString(),
+        },
+      );
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode >= 200 &&
+          response.statusCode < 300) {
+        final data =
+            jsonDecode(response.body) as List<dynamic>;
+
+        return data
+            .map(
+              (item) =>
+                  CalendarAvailability.fromJson(
+                item as Map<String, dynamic>,
+              ),
+            )
+            .toList();
+      }
+
+      throw Exception(
+        'Failed to load calendar availability.',
+      );
+    }
 }

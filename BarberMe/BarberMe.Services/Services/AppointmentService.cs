@@ -687,8 +687,8 @@ namespace BarberMe.Services.Services
         }
 
         public async Task UpdateReminderAsync(
-    int appointmentId,
-    AppointmentReminderRequest request)
+            int appointmentId,
+            AppointmentReminderRequest request)
         {
             var appointment = await _context.Appointments
                 .FirstOrDefaultAsync(x =>
@@ -726,6 +726,162 @@ namespace BarberMe.Services.Services
                 request.ReminderEnabled;
 
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<CalendarAvailabilityResponse>> GetCalendarAvailabilityAsync(
+            int barberId,
+            int serviceId,
+            int year,
+            int month)
+        {
+            if (barberId <= 0)
+            {
+                throw new BusinessException(
+                    "Barber is required.");
+            }
+
+            if (serviceId <= 0)
+            {
+                throw new BusinessException(
+                    "Service is required.");
+            }
+
+            if (year < DateTime.UtcNow.Year ||
+                year > DateTime.UtcNow.Year + 1)
+            {
+                throw new BusinessException(
+                    "Invalid year.");
+            }
+
+            if (month < 1 || month > 12)
+            {
+                throw new BusinessException(
+                    "Month must be between 1 and 12.");
+            }
+
+            var barberService = await _context.BarberServices
+                .AsNoTracking()
+                .Include(x => x.Barber)
+                .Include(x => x.Service)
+                .FirstOrDefaultAsync(x =>
+                    x.BarberId == barberId &&
+                    x.ServiceId == serviceId);
+
+            if (barberService == null ||
+                !barberService.Barber.IsActive ||
+                !barberService.Service.IsActive)
+            {
+                return new List<CalendarAvailabilityResponse>();
+            }
+
+            var workingHours = await _context.WorkingHours
+                .AsNoTracking()
+                .Where(x =>
+                    x.BarberId == barberId &&
+                    x.IsWorking)
+                .OrderBy(x => x.DayOfWeek)
+                .ThenBy(x => x.StartTime)
+                .ToListAsync();
+
+            var monthStart =
+                new DateTime(year, month, 1);
+
+            var nextMonthStart =
+                monthStart.AddMonths(1);
+
+            var appointments = await _context.Appointments
+                .AsNoTracking()
+                .Where(x =>
+                    x.BarberId == barberId &&
+                    x.StartDateTime < nextMonthStart &&
+                    x.EndDateTime > monthStart &&
+                    x.AppointmentStatusId !=
+                        (int)AppointmentStatusType.Cancelled)
+                .ToListAsync();
+
+            var daysInMonth =
+                DateTime.DaysInMonth(year, month);
+
+            var result =
+                new List<CalendarAvailabilityResponse>();
+
+            for (var day = 1; day <= daysInMonth; day++)
+            {
+                var date = new DateOnly(year, month, day);
+
+                var shifts = workingHours
+                    .Where(x =>
+                        x.DayOfWeek == (int)date.DayOfWeek)
+                    .ToList();
+
+                if (shifts.Count == 0)
+                {
+                    result.Add(
+                        new CalendarAvailabilityResponse
+                        {
+                            Date = date,
+                            IsWorkingDay = false,
+                            HasAvailableSlots = false
+                        });
+
+                    continue;
+                }
+
+                var hasAvailableSlot = false;
+
+                foreach (var shift in shifts)
+                {
+                    var shiftStart = date.ToDateTime(
+                        TimeOnly.FromTimeSpan(
+                            shift.StartTime));
+
+                    var shiftEnd = date.ToDateTime(
+                        TimeOnly.FromTimeSpan(
+                            shift.EndTime));
+
+                    var current = shiftStart;
+
+                    while (current.AddMinutes(
+                               barberService.DurationMinutes) <=
+                           shiftEnd)
+                    {
+                        var slotEnd = current.AddMinutes(
+                            barberService.DurationMinutes);
+
+                        var isTaken = appointments.Any(x =>
+                            IsOverlapping(
+                                current,
+                                slotEnd,
+                                x.StartDateTime,
+                                x.EndDateTime));
+
+                        if (!isTaken &&
+                            current > DateTime.UtcNow)
+                        {
+                            hasAvailableSlot = true;
+                            break;
+                        }
+
+                        current = current.AddMinutes(
+                            barberService.DurationMinutes);
+                    }
+
+                    if (hasAvailableSlot)
+                    {
+                        break;
+                    }
+                }
+
+                result.Add(
+                    new CalendarAvailabilityResponse
+                    {
+                        Date = date,
+                        IsWorkingDay = true,
+                        HasAvailableSlots = hasAvailableSlot
+                    });
+            }
+
+            return result;
         }
     }
 }

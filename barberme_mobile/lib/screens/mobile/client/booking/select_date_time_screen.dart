@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 import '../../../../models/available_slot.dart';
 import '../../../../models/barber_service.dart';
+import '../../../../models/calendar_availability.dart';
 import '../../../../models/user.dart';
 import '../../../../services/appointment_service.dart';
 
@@ -22,48 +24,104 @@ class SelectDateTimeScreen extends StatefulWidget {
       _SelectDateTimeScreenState();
 }
 
-class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
-  final AppointmentService _appointmentService = AppointmentService();
+class _SelectDateTimeScreenState
+    extends State<SelectDateTimeScreen> {
+  final AppointmentService _appointmentService =
+      AppointmentService();
+
   bool _isBooking = false;
 
+  DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDate;
+
   AvailableSlot? _selectedSlot;
 
   List<AvailableSlot> _availableSlots = [];
+  List<CalendarAvailability> _calendarAvailability = [];
 
   bool _isLoadingSlots = false;
+  bool _isLoadingCalendar = true;
+
   String? _errorMessage;
+  String? _calendarErrorMessage;
 
-  Future<void> _selectDate() async {
-    final now = DateTime.now();
+  @override
+  void initState() {
+    super.initState();
 
-    final pickedDate = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate ?? now,
-      firstDate: DateTime(
-        now.year,
-        now.month,
-        now.day,
-      ),
-      lastDate: DateTime(
-        now.year + 1,
-        now.month,
-        now.day,
-      ),
-    );
+    _focusedDay = DateTime.now();
 
-    if (pickedDate == null) {
-      return;
-    }
+    _loadCalendarAvailability(_focusedDay);
+  }
 
+  Future<void> _loadCalendarAvailability(
+    DateTime focusedDay,
+  ) async {
     setState(() {
-      _selectedDate = pickedDate;
-      _selectedSlot = null;
-      _availableSlots = [];
-      _errorMessage = null;
+      _isLoadingCalendar = true;
+      _calendarErrorMessage = null;
     });
 
-    await _loadAvailableSlots();
+    try {
+      final result =
+          await _appointmentService.getCalendarAvailability(
+        barberId: widget.barber.id,
+        serviceId: widget.barberService.serviceId,
+        year: focusedDay.year,
+        month: focusedDay.month,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _calendarAvailability = result;
+        _isLoadingCalendar = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _calendarErrorMessage =
+            e.toString().replaceFirst('Exception: ', '');
+        _isLoadingCalendar = false;
+      });
+    }
+  }
+
+  CalendarAvailability? _getAvailability(
+    DateTime day,
+  ) {
+    for (final item in _calendarAvailability) {
+      if (isSameDay(item.date, day)) {
+        return item;
+      }
+    }
+
+    return null;
+  }
+
+  bool _isDaySelectable(DateTime day) {
+    final now = DateTime.now();
+
+    final today = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    );
+
+    final normalizedDay = DateTime(
+      day.year,
+      day.month,
+      day.day,
+    );
+
+    if (normalizedDay.isBefore(today)) {
+      return false;
+    }
+
+    final availability = _getAvailability(day);
+
+    return availability?.isWorkingDay == true;
   }
 
   Future<void> _loadAvailableSlots() async {
@@ -78,24 +136,21 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
     });
 
     try {
-      final slots = await _appointmentService.getAvailableSlots(
+      final slots =
+          await _appointmentService.getAvailableSlots(
         barberId: widget.barber.id,
         serviceId: widget.barberService.serviceId,
         date: _selectedDate!,
       );
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
         _availableSlots = slots;
         _isLoadingSlots = false;
       });
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       setState(() {
         _errorMessage =
@@ -133,7 +188,9 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
               Icons.check_circle_outline,
               size: 48,
             ),
-            title: const Text('Appointment booked'),
+            title: const Text(
+              'Appointment booked',
+            ),
             content: const Text(
               'Your appointment has been booked successfully.',
             ),
@@ -142,7 +199,9 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                 onPressed: () {
                   Navigator.of(dialogContext).pop();
                 },
-                child: const Text('Continue'),
+                child: const Text(
+                  'Continue',
+                ),
               ),
             ],
           );
@@ -160,7 +219,9 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
               Icons.notifications_outlined,
               size: 44,
             ),
-            title: const Text('Set a reminder?'),
+            title: const Text(
+              'Set a reminder?',
+            ),
             content: const Text(
               'Would you like to receive a reminder before your appointment?',
             ),
@@ -169,13 +230,17 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                 onPressed: () {
                   Navigator.of(dialogContext).pop(false);
                 },
-                child: const Text('Not now'),
+                child: const Text(
+                  'Not now',
+                ),
               ),
               FilledButton(
                 onPressed: () {
                   Navigator.of(dialogContext).pop(true);
                 },
-                child: const Text('Set reminder'),
+                child: const Text(
+                  'Set reminder',
+                ),
               ),
             ],
           );
@@ -207,7 +272,10 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            e.toString().replaceFirst('Exception: ', ''),
+            e.toString().replaceFirst(
+              'Exception: ',
+              '',
+            ),
           ),
         ),
       );
@@ -220,16 +288,12 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
     }
   }
 
-  String _formatDate(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-
-    return '$day.$month.${date.year}';
-  }
-
   String _formatTime(DateTime dateTime) {
-    final hour = dateTime.hour.toString().padLeft(2, '0');
-    final minute = dateTime.minute.toString().padLeft(2, '0');
+    final hour =
+        dateTime.hour.toString().padLeft(2, '0');
+
+    final minute =
+        dateTime.minute.toString().padLeft(2, '0');
 
     return '$hour:$minute';
   }
@@ -237,7 +301,8 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
   @override
   Widget build(BuildContext context) {
     final barberName =
-        '${widget.barber.firstName} ${widget.barber.lastName}'.trim();
+        '${widget.barber.firstName} '
+        '${widget.barber.lastName}'.trim();
 
     return Scaffold(
       appBar: AppBar(
@@ -255,63 +320,30 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  _buildBookingSummary(barberName),
+                  _buildBookingSummary(
+                    barberName,
+                  ),
 
                   const SizedBox(height: 24),
 
                   Text(
-                    'Date',
+                    'Select date',
                     style: Theme.of(context)
                         .textTheme
                         .titleMedium
                         ?.copyWith(
-                          fontWeight: FontWeight.bold,
+                          fontWeight:
+                              FontWeight.bold,
                         ),
                   ),
 
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
 
-                  InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: _selectDate,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Colors.grey.shade300,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.calendar_month_outlined,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              _selectedDate == null
-                                  ? 'Select date'
-                                  : _formatDate(_selectedDate!),
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: _selectedDate == null
-                                    ? Colors.grey.shade600
-                                    : null,
-                              ),
-                            ),
-                          ),
-                          const Icon(
-                            Icons.chevron_right,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  _buildCalendar(),
+
+                  const SizedBox(height: 12),
+
+                  const _CalendarLegend(),
 
                   if (_selectedDate != null) ...[
                     const SizedBox(height: 28),
@@ -322,7 +354,8 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                           .textTheme
                           .titleMedium
                           ?.copyWith(
-                            fontWeight: FontWeight.bold,
+                            fontWeight:
+                                FontWeight.bold,
                           ),
                     ),
 
@@ -341,7 +374,182 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
     );
   }
 
-  Widget _buildBookingSummary(String barberName) {
+  Widget _buildCalendar() {
+    if (_isLoadingCalendar) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(
+          vertical: 40,
+        ),
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_calendarErrorMessage != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: 20,
+        ),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 42,
+            ),
+
+            const SizedBox(height: 12),
+
+            Text(
+              _calendarErrorMessage!,
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 12),
+
+            OutlinedButton(
+              onPressed: () {
+                _loadCalendarAvailability(
+                  _focusedDay,
+                );
+              },
+              child: const Text(
+                'Try again',
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final now = DateTime.now();
+
+    final firstDay = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    );
+
+    final lastDay = DateTime(
+      now.year + 1,
+      now.month,
+      now.day,
+    );
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: TableCalendar(
+          firstDay: firstDay,
+          lastDay: lastDay,
+          focusedDay: _focusedDay,
+
+          calendarFormat:
+              CalendarFormat.month,
+
+          availableCalendarFormats: const {
+            CalendarFormat.month: 'Month',
+          },
+
+          headerStyle: const HeaderStyle(
+            formatButtonVisible: false,
+            titleCentered: true,
+          ),
+
+          selectedDayPredicate: (day) {
+            return _selectedDate != null &&
+                isSameDay(
+                  _selectedDate,
+                  day,
+                );
+          },
+
+          enabledDayPredicate: (day) {
+            return _isDaySelectable(day);
+          },
+
+          onDaySelected: (
+            selectedDay,
+            focusedDay,
+          ) async {
+            if (!_isDaySelectable(
+              selectedDay,
+            )) {
+              return;
+            }
+
+            setState(() {
+              _selectedDate = selectedDay;
+              _focusedDay = focusedDay;
+
+              _selectedSlot = null;
+              _availableSlots = [];
+
+              _errorMessage = null;
+            });
+
+            await _loadAvailableSlots();
+          },
+
+          onPageChanged: (focusedDay) {
+            setState(() {
+              _focusedDay = focusedDay;
+
+              _selectedDate = null;
+              _selectedSlot = null;
+
+              _availableSlots = [];
+              _errorMessage = null;
+            });
+
+            _loadCalendarAvailability(
+              focusedDay,
+            );
+          },
+
+          calendarBuilders:
+              CalendarBuilders(
+            markerBuilder: (
+              context,
+              day,
+              events,
+            ) {
+              final availability =
+                  _getAvailability(day);
+
+              if (availability == null ||
+                  !availability
+                      .isWorkingDay) {
+                return null;
+              }
+
+              final markerColor =
+                  availability
+                          .hasAvailableSlots
+                      ? Colors.green
+                      : Colors.red;
+
+              return Positioned(
+                bottom: 5,
+                child: Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: markerColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBookingSummary(
+    String barberName,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -353,12 +561,15 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                   Icons.person_outline,
                   size: 20,
                 ),
+
                 const SizedBox(width: 10),
+
                 Expanded(
                   child: Text(
                     barberName,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w600,
+                      fontWeight:
+                          FontWeight.w600,
                     ),
                   ),
                 ),
@@ -373,12 +584,16 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                   Icons.content_cut,
                   size: 20,
                 ),
+
                 const SizedBox(width: 10),
+
                 Expanded(
                   child: Text(
-                    widget.barberService.serviceName,
+                    widget.barberService
+                        .serviceName,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w600,
+                      fontWeight:
+                          FontWeight.w600,
                     ),
                   ),
                 ),
@@ -393,15 +608,20 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
                   Icons.schedule_outlined,
                   size: 20,
                 ),
+
                 const SizedBox(width: 10),
+
                 Text(
                   '${widget.barberService.durationMinutes} min',
                 ),
+
                 const Spacer(),
+
                 Text(
                   '${widget.barberService.price.toStringAsFixed(2)} BAM',
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
+                    fontWeight:
+                        FontWeight.bold,
                   ),
                 ),
               ],
@@ -419,7 +639,8 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
           vertical: 30,
         ),
         child: Center(
-          child: CircularProgressIndicator(),
+          child:
+              CircularProgressIndicator(),
         ),
       );
     }
@@ -435,15 +656,22 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
               Icons.error_outline,
               size: 42,
             ),
+
             const SizedBox(height: 12),
+
             Text(
               _errorMessage!,
               textAlign: TextAlign.center,
             ),
+
             const SizedBox(height: 12),
+
             OutlinedButton(
-              onPressed: _loadAvailableSlots,
-              child: const Text('Try again'),
+              onPressed:
+                  _loadAvailableSlots,
+              child: const Text(
+                'Try again',
+              ),
             ),
           ],
         ),
@@ -467,13 +695,17 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
     return Wrap(
       spacing: 10,
       runSpacing: 10,
-      children: _availableSlots.map((slot) {
+      children:
+          _availableSlots.map((slot) {
         final isSelected =
-            _selectedSlot?.startDateTime == slot.startDateTime;
+            _selectedSlot?.startDateTime ==
+                slot.startDateTime;
 
         return ChoiceChip(
           label: Text(
-            _formatTime(slot.startDateTime),
+            _formatTime(
+              slot.startDateTime,
+            ),
           ),
           selected: isSelected,
           onSelected: (_) {
@@ -496,24 +728,91 @@ class _SelectDateTimeScreenState extends State<SelectDateTimeScreen> {
         20,
       ),
       child: FilledButton(
-        onPressed: _selectedSlot == null || _isBooking
-            ? null
-            : _bookAppointment,
+        onPressed:
+            _selectedSlot == null ||
+                    _isBooking
+                ? null
+                : _bookAppointment,
         child: Padding(
-          padding: const EdgeInsets.symmetric(
+          padding:
+              const EdgeInsets.symmetric(
             vertical: 14,
           ),
           child: _isBooking
               ? const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(
+                  child:
+                      CircularProgressIndicator(
                     strokeWidth: 2,
                   ),
                 )
-              : const Text('Book appointment'),
+              : const Text(
+                  'Book appointment',
+                ),
         ),
       ),
+    );
+  }
+}
+
+class _CalendarLegend extends StatelessWidget {
+  const _CalendarLegend();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      mainAxisAlignment:
+          MainAxisAlignment.center,
+      children: [
+        _LegendItem(
+          color: Colors.green,
+          text: 'Available',
+        ),
+
+        SizedBox(width: 22),
+
+        _LegendItem(
+          color: Colors.red,
+          text: 'Fully booked',
+        ),
+      ],
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  final Color color;
+  final String text;
+
+  const _LegendItem({
+    required this.color,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+
+        const SizedBox(width: 6),
+
+        Text(
+          text,
+          style: const TextStyle(
+            fontSize: 12,
+          ),
+        ),
+      ],
     );
   }
 }

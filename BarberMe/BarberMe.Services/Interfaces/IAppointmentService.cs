@@ -28,5 +28,11 @@ namespace BarberMe.Services.Interfaces
         Task UpdateReminderAsync(
             int appointmentId,
             AppointmentReminderRequest request);
+
+        Task<List<CalendarAvailabilityResponse>> GetCalendarAvailabilityAsync(
+            int barberId,
+            int serviceId,
+            int year,
+            int month);
     }
 }
