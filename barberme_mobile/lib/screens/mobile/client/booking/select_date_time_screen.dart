@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:flutter_stripe/flutter_stripe.dart' hide Card;
 
 import '../../../../models/available_slot.dart';
 import '../../../../models/barber_service.dart';
 import '../../../../models/calendar_availability.dart';
 import '../../../../models/user.dart';
 import '../../../../services/appointment_service.dart';
+import '../../../../services/payment_service.dart';
 
 import '../client_main_screen.dart';
 
@@ -44,6 +46,8 @@ class _SelectDateTimeScreenState
 
   String? _errorMessage;
   String? _calendarErrorMessage;
+
+  final PaymentService _paymentService = PaymentService();
 
   @override
   void initState() {
@@ -124,6 +128,7 @@ class _SelectDateTimeScreenState
     return availability?.isWorkingDay == true;
   }
 
+  
   Future<void> _loadAvailableSlots() async {
     if (_selectedDate == null) {
       return;
@@ -158,6 +163,34 @@ class _SelectDateTimeScreenState
         _isLoadingSlots = false;
       });
     }
+  }
+
+  Future<void> _payAppointment(int appointmentId) async {
+    final payment =
+        await _paymentService.createPayment(appointmentId);
+
+    if (payment.clientSecret == null ||
+        payment.clientSecret!.isEmpty) {
+      throw Exception(
+        'Stripe client secret is missing.',
+      );
+    }
+
+    await Stripe.instance.initPaymentSheet(
+      paymentSheetParameters:
+          SetupPaymentSheetParameters(
+        paymentIntentClientSecret:
+            payment.clientSecret!,
+        merchantDisplayName: 'Barber Me',
+        style: ThemeMode.system,
+      ),
+    );
+
+    await Stripe.instance.presentPaymentSheet();
+
+    await _paymentService.confirmPayment(
+      payment.id,
+    );
   }
 
   Future<void> _bookAppointment() async {
@@ -257,6 +290,105 @@ class _SelectDateTimeScreenState
       }
 
       if (!mounted) return;
+
+      final payNow = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          return AlertDialog(
+            icon: const Icon(
+              Icons.payments_outlined,
+              size: 44,
+            ),
+            title: const Text(
+              'Pay now?',
+            ),
+            content: Text(
+              'Would you like to pay '
+              '${widget.barberService.price.toStringAsFixed(2)} BAM '
+              'now?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop(false);
+                },
+                child: const Text(
+                  'Pay later',
+                ),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop(true);
+                },
+                child: const Text(
+                  'Pay now',
+                ),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (!mounted) return;
+
+      if (payNow == true) {
+        try {
+          await _payAppointment(
+            appointment.id,
+          );
+
+          if (!mounted) return;
+
+          await showDialog<void>(
+            context: context,
+            builder: (dialogContext) {
+              return AlertDialog(
+                icon: const Icon(
+                  Icons.check_circle_outline,
+                  size: 48,
+                ),
+                title: const Text(
+                  'Payment successful',
+                ),
+                content: const Text(
+                  'Your appointment has been paid successfully.',
+                ),
+                actions: [
+                  FilledButton(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            },
+          );
+        } on StripeException catch (e) {
+          if (!mounted) return;
+
+          if (e.error.code ==
+              FailureCode.Canceled) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Payment was cancelled.',
+                ),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  e.error.localizedMessage ??
+                      'Payment failed.',
+                ),
+              ),
+            );
+          }
+        }
+      }
 
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(

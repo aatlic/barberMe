@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart' hide Card;
 
 import '../../../core/theme/app_theme.dart';
 import '../../../models/appointment.dart';
 import '../../../services/appointment_service.dart';
+import '../../../services/payment_service.dart';
 
 class ClientAppointmentsScreen extends StatefulWidget {
   const ClientAppointmentsScreen({super.key});
@@ -17,10 +19,15 @@ class _ClientAppointmentsScreenState
   final AppointmentService _appointmentService =
       AppointmentService();
 
+  final PaymentService _paymentService =
+      PaymentService();
+
   List<Appointment> _appointments = [];
 
   bool _isLoading = true;
   String? _errorMessage;
+
+  int? _payingAppointmentId;
 
   @override
   void initState() {
@@ -51,13 +58,136 @@ class _ClientAppointmentsScreenState
     }
   }
 
+  Future<void> _payAppointment(
+    Appointment appointment,
+  ) async {
+    if (_payingAppointmentId != null) {
+      return;
+    }
+
+    setState(() {
+      _payingAppointmentId = appointment.id;
+    });
+
+    try {
+      final payment =
+          await _paymentService.createPayment(
+        appointment.id,
+      );
+
+      if (payment.clientSecret == null ||
+          payment.clientSecret!.isEmpty) {
+        throw Exception(
+          'Stripe client secret is missing.',
+        );
+      }
+
+      await Stripe.instance.initPaymentSheet(
+        paymentSheetParameters:
+            SetupPaymentSheetParameters(
+          paymentIntentClientSecret:
+              payment.clientSecret!,
+          merchantDisplayName: 'Barber Me',
+          style: ThemeMode.system,
+        ),
+      );
+
+      await Stripe.instance.presentPaymentSheet();
+
+      await _paymentService.confirmPayment(
+        payment.id,
+      );
+
+      if (!mounted) return;
+
+      await _loadAppointments();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Payment completed successfully.',
+          ),
+        ),
+      );
+    } on StripeException catch (e) {
+      if (!mounted) return;
+
+      if (e.error.code == FailureCode.Canceled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Payment was cancelled.',
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              e.error.localizedMessage ??
+                  'Payment failed.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst(
+              'Exception: ',
+              '',
+            ),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _payingAppointmentId = null;
+        });
+      }
+    }
+  }
+
+  bool _canPay(Appointment appointment) {
+    if (appointment.isPaid) {
+      return false;
+    }
+
+    final status =
+        appointment.status.toLowerCase();
+
+    if (status == 'cancelled' ||
+        status == 'completed' ||
+        status == 'no show' ||
+        status == 'noshow') {
+      return false;
+    }
+
+    if (appointment.startDateTime
+        .isBefore(DateTime.now())) {
+      return false;
+    }
+
+    return true;
+  }
+
   String _formatDateTime(DateTime value) {
-    final day = value.day.toString().padLeft(2, '0');
-    final month = value.month.toString().padLeft(2, '0');
+    final day =
+        value.day.toString().padLeft(2, '0');
+    final month =
+        value.month.toString().padLeft(2, '0');
     final year = value.year;
 
-    final hour = value.hour.toString().padLeft(2, '0');
-    final minute = value.minute.toString().padLeft(2, '0');
+    final hour =
+        value.hour.toString().padLeft(2, '0');
+    final minute =
+        value.minute.toString().padLeft(2, '0');
 
     return '$day.$month.$year. $hour:$minute';
   }
@@ -110,7 +240,9 @@ class _ClientAppointmentsScreenState
 
                   _loadAppointments();
                 },
-                child: const Text('Try again'),
+                child: const Text(
+                  'Try again',
+                ),
               ),
             ],
           ),
@@ -128,7 +260,8 @@ class _ClientAppointmentsScreenState
               Icon(
                 Icons.calendar_month_outlined,
                 size: 56,
-                color: AppTheme.textSecondaryColor,
+                color:
+                    AppTheme.textSecondaryColor,
               ),
               SizedBox(height: 16),
               Text(
@@ -143,7 +276,8 @@ class _ClientAppointmentsScreenState
                 'Your appointments will appear here.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: AppTheme.textSecondaryColor,
+                  color:
+                      AppTheme.textSecondaryColor,
                 ),
               ),
             ],
@@ -155,18 +289,28 @@ class _ClientAppointmentsScreenState
     return RefreshIndicator(
       onRefresh: _loadAppointments,
       child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
+        physics:
+            const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
         itemCount: _appointments.length,
         separatorBuilder: (_, __) =>
             const SizedBox(height: 12),
         itemBuilder: (context, index) {
-          final appointment = _appointments[index];
+          final appointment =
+              _appointments[index];
 
           return _AppointmentCard(
             appointment: appointment,
-            formattedDate:
-                _formatDateTime(appointment.startDateTime),
+            formattedDate: _formatDateTime(
+              appointment.startDateTime,
+            ),
+            canPay: _canPay(appointment),
+            isPaying:
+                _payingAppointmentId ==
+                    appointment.id,
+            onPay: () {
+              _payAppointment(appointment);
+            },
           );
         },
       ),
@@ -177,10 +321,16 @@ class _ClientAppointmentsScreenState
 class _AppointmentCard extends StatelessWidget {
   final Appointment appointment;
   final String formattedDate;
+  final bool canPay;
+  final bool isPaying;
+  final VoidCallback onPay;
 
   const _AppointmentCard({
     required this.appointment,
     required this.formattedDate,
+    required this.canPay,
+    required this.isPaying,
+    required this.onPay,
   });
 
   @override
@@ -189,7 +339,8 @@ class _AppointmentCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
           children: [
             Row(
               children: [
@@ -198,7 +349,8 @@ class _AppointmentCard extends StatelessWidget {
                     appointment.serviceName,
                     style: const TextStyle(
                       fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      fontWeight:
+                          FontWeight.bold,
                     ),
                   ),
                 ),
@@ -212,7 +364,8 @@ class _AppointmentCard extends StatelessWidget {
 
             _DetailRow(
               icon: Icons.person_outline,
-              text: appointment.barberFullName,
+              text:
+                  appointment.barberFullName,
             ),
 
             const SizedBox(height: 8),
@@ -236,12 +389,14 @@ class _AppointmentCard extends StatelessWidget {
               children: [
                 Icon(
                   appointment.isPaid
-                      ? Icons.check_circle_outline
+                      ? Icons
+                          .check_circle_outline
                       : Icons.info_outline,
                   size: 18,
                   color: appointment.isPaid
                       ? Colors.green
-                      : AppTheme.textSecondaryColor,
+                      : AppTheme
+                          .textSecondaryColor,
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -249,14 +404,45 @@ class _AppointmentCard extends StatelessWidget {
                       ? 'Paid'
                       : 'Not paid',
                   style: TextStyle(
-                    fontWeight: FontWeight.w500,
+                    fontWeight:
+                        FontWeight.w500,
                     color: appointment.isPaid
                         ? Colors.green
-                        : AppTheme.textSecondaryColor,
+                        : AppTheme
+                            .textSecondaryColor,
                   ),
                 ),
               ],
             ),
+
+            if (canPay) ...[
+              const SizedBox(height: 16),
+
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed:
+                      isPaying ? null : onPay,
+                  icon: isPaying
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child:
+                              CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.credit_card,
+                        ),
+                  label: Text(
+                    isPaying
+                        ? 'Processing...'
+                        : 'Pay now',
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -311,10 +497,12 @@ class _StatusChip extends StatelessWidget {
         vertical: 6,
       ),
       decoration: BoxDecoration(
-        color: AppTheme.accentColor.withValues(
+        color: AppTheme.accentColor
+            .withValues(
           alpha: 0.12,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius:
+            BorderRadius.circular(20),
       ),
       child: Text(
         status,
