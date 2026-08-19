@@ -53,7 +53,49 @@ namespace BarberMe.API.Mapping
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.WorkingHoursId));
 
             CreateMap<Appointment, AppointmentResponse>()
-                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.AppointmentId));
+                .ForMember(
+                    dest => dest.Id,
+                    opt => opt.MapFrom(src => src.AppointmentId)
+                )
+                .ForMember(
+                    dest => dest.ClientFullName,
+                    opt => opt.MapFrom(src =>
+                        src.Client.FirstName + " " + src.Client.LastName)
+                )
+                .ForMember(
+                    dest => dest.BarberFullName,
+                    opt => opt.MapFrom(src =>
+                        src.Barber.FirstName + " " + src.Barber.LastName)
+                )
+                .ForMember(
+                    dest => dest.ServiceId,
+                    opt => opt.MapFrom(src =>
+                        src.BarberService.ServiceId)
+                )
+                .ForMember(
+                    dest => dest.ServiceName,
+                    opt => opt.MapFrom(src =>
+                        src.BarberService.Service.Name)
+                )
+                .ForMember(
+                    dest => dest.Price,
+                    opt => opt.MapFrom(src =>
+                        src.BarberService.Price)
+                )
+                .ForMember(
+                    dest => dest.DurationMinutes,
+                    opt => opt.MapFrom(src =>
+                        src.BarberService.DurationMinutes)
+                )
+                .ForMember(
+                    dest => dest.Status,
+                    opt => opt.MapFrom(src =>
+                        src.AppointmentStatus.Name)
+                )
+                .ForMember(
+                    dest => dest.HasReview,
+                    opt => opt.MapFrom(src => src.Review != null)
+                );
 
             CreateMap<Notification, NotificationResponse>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.NotificationId));

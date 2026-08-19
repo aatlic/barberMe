@@ -1,4 +1,6 @@
-﻿namespace BarberMe.Model.SearchObjects
+﻿using BarberMe.Model.Enum;
+
+namespace BarberMe.Model.SearchObjects
 {
     public class AppointmentSearchObject : BaseSearchObject
     {
@@ -11,5 +13,6 @@
         public DateTime? DateFrom { get; set; }
 
         public DateTime? DateTo { get; set; }
+        public AppointmentListType? ListType { get; set; }
     }
 }
