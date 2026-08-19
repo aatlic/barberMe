@@ -18,6 +18,7 @@ class AppointmentService {
     int? appointmentStatusId,
     DateTime? dateFrom,
     DateTime? dateTo,
+    String? listType,
     int page = 1,
     int pageSize = 20,
   }) async {
@@ -27,6 +28,10 @@ class AppointmentService {
       'Page': page.toString(),
       'PageSize': pageSize.toString(),
     };
+
+    if (listType != null) {
+      queryParameters['ListType'] = listType;
+    }
 
     if (appointmentStatusId != null) {
       queryParameters['AppointmentStatusId'] =
@@ -245,4 +250,80 @@ class AppointmentService {
         'Failed to load calendar availability.',
       );
     }
+
+  Future<void> cancelAppointment({
+    required int appointmentId,
+    required String cancellationReason,
+  }) async {
+    final token = await _storage.read(key: 'jwt_token');
+
+    final response = await http.put(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/api/Appointments/$appointmentId/cancel',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'cancellationReason': cancellationReason,
+      }),
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      return;
+    }
+
+    String message = 'Failed to cancel appointment.';
+
+    try {
+      final data =
+          jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (data['message'] != null) {
+        message = data['message'].toString();
+      }
+    } catch (_) {}
+
+    throw Exception(message);
+  }
+
+  Future<bool> rescheduleAppointment({
+    required int appointmentId,
+    required DateTime startDateTime,
+  }) async {
+    final token = await _storage.read(key: 'jwt_token');
+
+    final response = await http.put(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/api/Appointments/$appointmentId/reschedule',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'startDateTime': startDateTime.toIso8601String(),
+      }),
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      return jsonDecode(response.body) as bool;
+    }
+
+    String message = 'Failed to reschedule appointment.';
+
+    try {
+      final data =
+          jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (data['message'] != null) {
+        message = data['message'].toString();
+      }
+    } catch (_) {}
+
+    throw Exception(message);
+  }
 }

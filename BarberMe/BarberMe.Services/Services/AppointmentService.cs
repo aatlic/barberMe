@@ -41,6 +41,7 @@ namespace BarberMe.Services.Services
                 .Include(x => x.BarberService)
                     .ThenInclude(x => x.Service)
                 .Include(x => x.AppointmentStatus)
+                .Include(x => x.Review)
                 .AsQueryable();
 
             if (_currentUserService.Role == Roles.Client)
@@ -58,6 +59,32 @@ namespace BarberMe.Services.Services
 
                 if (search.BarberId.HasValue)
                     query = query.Where(x => x.BarberId == search.BarberId.Value);
+            }
+
+            if (search.ListType.HasValue)
+            {
+                if (search.ListType == AppointmentListType.Upcoming)
+                {
+                    query = query.Where(x =>
+                        x.StartDateTime > DateTime.UtcNow &&
+                        (
+                            x.AppointmentStatusId ==
+                                (int)AppointmentStatusType.Pending ||
+                            x.AppointmentStatusId ==
+                                (int)AppointmentStatusType.Confirmed
+                        ));
+                }
+                else if (search.ListType == AppointmentListType.History)
+                {
+                    query = query.Where(x =>
+                        x.StartDateTime <= DateTime.UtcNow ||
+                        x.AppointmentStatusId ==
+                            (int)AppointmentStatusType.Completed ||
+                        x.AppointmentStatusId ==
+                            (int)AppointmentStatusType.Cancelled ||
+                        x.AppointmentStatusId ==
+                            (int)AppointmentStatusType.NoShow);
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(search.FTS))
@@ -92,8 +119,12 @@ namespace BarberMe.Services.Services
             if (pageSize > 100)
                 pageSize = 100;
 
+            var orderedQuery =
+                search.ListType == AppointmentListType.Upcoming
+                    ? query.OrderBy(x => x.StartDateTime)
+                    : query.OrderByDescending(x => x.StartDateTime);
+
             var list = await query
-                .OrderByDescending(x => x.StartDateTime)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();

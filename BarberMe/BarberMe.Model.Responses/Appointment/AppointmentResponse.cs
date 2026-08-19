@@ -1,6 +1,4 @@
-﻿using BarberMe.Model.Enum;
-
-namespace BarberMe.Model.Responses.Appointment
+﻿namespace BarberMe.Model.Responses.Appointment
 {
     public class AppointmentResponse : BaseResponse
     {
@@ -21,7 +19,7 @@ namespace BarberMe.Model.Responses.Appointment
         public DateTime StartDateTime { get; set; }
         public DateTime EndDateTime { get; set; }
 
-        public AppointmentStatusType Status { get; set; }
+        public string Status { get; set; } = null!;
 
         public bool IsPaid { get; set; }
         public bool ReminderEnabled { get; set; }
