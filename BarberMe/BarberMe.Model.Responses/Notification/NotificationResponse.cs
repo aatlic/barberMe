@@ -1,21 +1,21 @@
-﻿using BarberMe.Model.Enum;
-
-namespace BarberMe.Model.Responses.Notification
+﻿namespace BarberMe.Model.Responses.Notification
 {
     public class NotificationResponse : BaseResponse
     {
         public int UserId { get; set; }
 
-        public int ServiceId { get; set; }
-        public string ServiceName { get; set; } = null!;
+        public int NotificationTypeId { get; set; }
 
-        public decimal Score { get; set; }
+        public string NotificationTypeName { get; set; } = null!;
 
-        public string Explanation { get; set; } = null!;
+        public string Title { get; set; } = null!;
 
-        public bool? WasAccepted { get; set; }
+        public string Text { get; set; } = null!;
+
+        public bool IsRead { get; set; }
 
         public DateTime CreatedAt { get; set; }
+
         public DateTime? ReadAt { get; set; }
     }
 }
