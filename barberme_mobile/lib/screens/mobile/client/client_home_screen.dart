@@ -4,8 +4,10 @@ import '../../../core/theme/app_theme.dart';
 import '../../../models/shop_settings.dart';
 import '../../../models/shop_working_hours.dart';
 import '../../../services/shop_service.dart';
-
+import '../../../services/notification_service.dart';
+import 'notifications_screen.dart';
 import 'booking/select_barber_screen.dart';
+import '../../../services/signalr_notification_service.dart';
 
 class ClientHomeScreen extends StatefulWidget {
   const ClientHomeScreen({super.key});
@@ -16,6 +18,12 @@ class ClientHomeScreen extends StatefulWidget {
 
 class _ClientHomeScreenState extends State<ClientHomeScreen> {
   final ShopService _shopService = ShopService();
+  final NotificationService _notificationService =
+      NotificationService();
+  final SignalRNotificationService _signalRNotificationService =
+      SignalRNotificationService();
+
+  int _unreadNotificationCount = 0;
 
   ShopSettings? _shopSettings;
   List<ShopWorkingHours> _workingHours = [];
@@ -26,7 +34,11 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
   @override
   void initState() {
     super.initState();
+
     _loadShopData();
+    _loadUnreadNotificationCount();
+
+    _connectSignalR();
   }
 
   Future<void> _loadShopData() async {
@@ -51,6 +63,61 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _loadUnreadNotificationCount() async {
+    try {
+      final count =
+          await _notificationService.getUnreadCount();
+
+      if (!mounted) return;
+
+      setState(() {
+        _unreadNotificationCount = count;
+      });
+    } catch (_) {
+      // The badge is not essential for using the Home screen,
+      // so we do not show an error if loading the count fails.
+    }
+  }
+
+  Future<void> _refreshHome() async {
+    await Future.wait([
+      _loadShopData(),
+      _loadUnreadNotificationCount(),
+    ]);
+  }
+
+  Future<void> _connectSignalR() async {
+    try {
+      await _signalRNotificationService.connect(
+        onNotificationReceived: (data) {
+          if (!mounted) return;
+
+          _loadUnreadNotificationCount();
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                data['title']?.toString() ??
+                    'New notification',
+              ),
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      debugPrint(
+        'SignalR connection failed: $e',
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _signalRNotificationService.disconnect();
+
+    super.dispose();
   }
 
   void _showWorkingHours() {
@@ -175,11 +242,30 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         ),
         actions: [
           IconButton(
-            onPressed: () {
-              // Notifications screen will be added later.
+            tooltip: 'Notifications',
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      const NotificationsScreen(),
+                ),
+              );
+
+              if (!mounted) return;
+
+              await _loadUnreadNotificationCount();
             },
-            icon: const Icon(
-              Icons.notifications_none,
+            icon: Badge(
+              isLabelVisible:
+                  _unreadNotificationCount > 0,
+              label: Text(
+                _unreadNotificationCount > 99
+                    ? '99+'
+                    : _unreadNotificationCount.toString(),
+              ),
+              child: const Icon(
+                Icons.notifications_outlined,
+              ),
             ),
           ),
         ],
@@ -232,7 +318,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: _loadShopData,
+      onRefresh: _refreshHome,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),

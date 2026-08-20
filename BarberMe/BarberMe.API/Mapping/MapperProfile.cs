@@ -98,7 +98,14 @@ namespace BarberMe.API.Mapping
                 );
 
             CreateMap<Notification, NotificationResponse>()
-                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.NotificationId));
+                .ForMember(
+                    dest => dest.Id,
+                    opt => opt.MapFrom(src => src.NotificationId)
+                )
+                .ForMember(
+                    dest => dest.NotificationTypeName,
+                    opt => opt.MapFrom(src => src.NotificationType.Name)
+                );
 
             CreateMap<Refund, RefundResponse>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.RefundId));

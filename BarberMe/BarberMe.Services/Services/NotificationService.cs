@@ -131,19 +131,25 @@ namespace BarberMe.Services.Services
         public async Task MarkAsRead(int id)
         {
             var entity = await _context.Notifications
-                .FirstOrDefaultAsync(x => x.NotificationId == id);
+                .FirstOrDefaultAsync(x =>
+                    x.NotificationId == id);
 
             if (entity == null)
-                throw new NotFoundException("Notification does not exist.");
-
-            if (entity.IsRead)
-                throw new BusinessException("Notification is already marked as read.");
+                throw new NotFoundException(
+                    "Notification does not exist.");
 
             if (_currentUserService.Role != Roles.Admin &&
                 entity.UserId != _currentUserService.UserId)
-                throw new UnauthorizedException("You are not allowed to update this notification.");
+            {
+                throw new UnauthorizedException(
+                    "You are not allowed to update this notification.");
+            }
+
+            if (entity.IsRead)
+                return;
 
             entity.IsRead = true;
+            entity.ReadAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
         }
