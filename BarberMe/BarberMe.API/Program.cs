@@ -13,10 +13,12 @@ using BarberMe.Services.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuestPDF.Infrastructure;
 using Stripe;
+using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -116,16 +118,61 @@ builder.Services.AddAuthentication(
         {
             OnMessageReceived = context =>
             {
-                var accessToken = context.Request.Query["access_token"];
-                var path = context.HttpContext.Request.Path;
+                var accessToken =
+                    context.Request.Query["access_token"];
+
+                var path =
+                    context.HttpContext.Request.Path;
 
                 if (!string.IsNullOrEmpty(accessToken) &&
-                    path.StartsWithSegments("/hubs/notifications"))
+                    path.StartsWithSegments(
+                        "/hubs/notifications"))
                 {
                     context.Token = accessToken;
                 }
 
                 return Task.CompletedTask;
+            },
+
+            OnTokenValidated = async context =>
+            {
+                var userIdClaim =
+                    context.Principal?.FindFirst(
+                        ClaimTypes.NameIdentifier);
+
+                var tokenVersionClaim =
+                    context.Principal?.FindFirst(
+                        "token_version");
+
+                if (userIdClaim == null ||
+                    tokenVersionClaim == null ||
+                    !int.TryParse(
+                        userIdClaim.Value,
+                        out var userId) ||
+                    !int.TryParse(
+                        tokenVersionClaim.Value,
+                        out var tokenVersion))
+                {
+                    context.Fail("Invalid token.");
+                    return;
+                }
+
+                var dbContext =
+                    context.HttpContext.RequestServices
+                        .GetRequiredService<BarberMeDbContext>();
+
+                var user = await dbContext.Users
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(
+                        x => x.UserId == userId);
+
+                if (user == null ||
+                    !user.IsActive ||
+                    user.TokenVersion != tokenVersion)
+                {
+                    context.Fail(
+                        "Token is no longer valid.");
+                }
             }
         };
     });
@@ -179,6 +226,17 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseStaticFiles();
+
+var imagesPath = Path.Combine(
+    builder.Environment.ContentRootPath,
+    "wwwroot",
+    "images");
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(imagesPath),
+    RequestPath = "/images"
+});
 
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");

@@ -227,5 +227,17 @@ namespace BarberMe.API.Controllers
 
             return Ok(result);
         }
+
+        [HttpPost("logout")]
+        [Authorize(Roles = $"{Roles.Admin},{Roles.Barber},{Roles.Client}")]
+        public async Task<IActionResult> Logout()
+        {
+            await _service.LogoutAsync();
+
+            return Ok(new
+            {
+                message = "Logged out successfully."
+            });
+        }
     }
 }

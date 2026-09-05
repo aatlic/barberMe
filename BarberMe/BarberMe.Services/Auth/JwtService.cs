@@ -29,7 +29,10 @@ namespace BarberMe.Services.Services
                     user.Username),
 
                 new Claim(ClaimTypes.Role,
-                    user.Role.Name)
+                    user.Role.Name),
+
+                new Claim("token_version",
+                    user.TokenVersion.ToString())
             };
 
             var key = new SymmetricSecurityKey(
