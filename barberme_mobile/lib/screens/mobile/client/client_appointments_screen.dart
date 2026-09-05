@@ -7,6 +7,7 @@ import '../../../services/appointment_service.dart';
 import '../../../services/payment_service.dart';
 import '../../../services/review_service.dart';
 import 'appointments/reschedule_appointment_screen.dart';
+import 'appointment_details_screen.dart';
 
 class ClientAppointmentsScreen extends StatefulWidget {
   const ClientAppointmentsScreen({super.key});
@@ -31,6 +32,17 @@ class _ClientAppointmentsScreenState
 
   int _selectedTab = 0;
 
+  final TextEditingController _searchController =
+    TextEditingController();
+
+  String _searchText = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   // UPCOMING
   List<Appointment> _upcomingAppointments = [];
   int _upcomingPage = 1;
@@ -49,6 +61,8 @@ class _ClientAppointmentsScreenState
 
   // PAYMENT
   int? _payingAppointmentId;
+
+  int? _updatingReminderAppointmentId;
 
   @override
   void initState() {
@@ -84,11 +98,12 @@ class _ClientAppointmentsScreenState
           : _upcomingPage + 1;
 
       final result =
-          await _appointmentService.getAppointments(
-        listType: 'Upcoming',
-        page: page,
-        pageSize: _pageSize,
-      );
+        await _appointmentService.getAppointments(
+          listType: 'Upcoming',
+          fts: _searchText,
+          page: page,
+          pageSize: _pageSize,
+        );
 
       if (!mounted) return;
 
@@ -149,11 +164,12 @@ class _ClientAppointmentsScreenState
           : _historyPage + 1;
 
       final result =
-          await _appointmentService.getAppointments(
-        listType: 'History',
-        page: page,
-        pageSize: _pageSize,
-      );
+        await _appointmentService.getAppointments(
+          listType: 'History',
+          fts: _searchText,
+          page: page,
+          pageSize: _pageSize,
+        );
 
       if (!mounted) return;
 
@@ -317,6 +333,63 @@ class _ClientAppointmentsScreenState
       if (mounted) {
         setState(() {
           _payingAppointmentId = null;
+        });
+      }
+    }
+  }
+
+  Future<void> _updateReminder(
+    Appointment appointment,
+    bool enabled,
+  ) async {
+    if (_updatingReminderAppointmentId != null) {
+      return;
+    }
+
+    setState(() {
+      _updatingReminderAppointmentId = appointment.id;
+    });
+
+    try {
+      await _appointmentService.updateReminder(
+        appointmentId: appointment.id,
+        reminderEnabled: enabled,
+      );
+
+      if (!mounted) return;
+
+      await _loadUpcoming(
+        refresh: true,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            enabled
+                ? 'Appointment reminder enabled.'
+                : 'Appointment reminder disabled.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst(
+              'Exception: ',
+              '',
+            ),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _updatingReminderAppointmentId = null;
         });
       }
     }
@@ -730,6 +803,8 @@ class _ClientAppointmentsScreenState
       ),
       body: Column(
         children: [
+          _buildSearch(),
+
           _buildTabs(),
 
           Expanded(
@@ -738,6 +813,54 @@ class _ClientAppointmentsScreenState
                 : _buildHistory(),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSearch() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        20,
+        16,
+        20,
+        0,
+      ),
+      child: TextField(
+        controller: _searchController,
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          hintText: 'Search by barber or service',
+          prefixIcon: const Icon(
+            Icons.search,
+          ),
+          suffixIcon: _searchText.isNotEmpty
+              ? IconButton(
+                  tooltip: 'Clear search',
+                  onPressed: () {
+                    _searchController.clear();
+
+                    setState(() {
+                      _searchText = '';
+                    });
+
+                    _refreshCurrentTab();
+                  },
+                  icon: const Icon(
+                    Icons.close,
+                  ),
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        onSubmitted: (value) {
+          setState(() {
+            _searchText = value.trim();
+          });
+
+          _refreshCurrentTab();
+        },
       ),
     );
   }
@@ -1034,6 +1157,26 @@ class _ClientAppointmentsScreenState
             isPaying:
                 _payingAppointmentId ==
                     appointment.id,
+            isUpdatingReminder:
+              _updatingReminderAppointmentId ==
+                  appointment.id,
+
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => AppointmentDetailsScreen(
+                    appointmentId: appointment.id,
+                  ),
+                ),
+              );
+            },
+
+            onReminderChanged: (value) {
+              _updateReminder(
+                appointment,
+                value,
+              );
+            },      
             onPay: () {
               _payAppointment(
                 appointment,
@@ -1119,22 +1262,24 @@ class _ClientAppointmentsScreenState
   }
 }
 
-class _AppointmentCard
-    extends StatelessWidget {
+class _AppointmentCard extends StatelessWidget {
   final Appointment appointment;
   final String formattedDate;
 
   final bool isHistory;
   final bool canPay;
   final bool canReschedule;
-final bool canCancel;
+  final bool canCancel;
   final bool canReview;
   final bool isPaying;
+  final bool isUpdatingReminder;
 
   final VoidCallback onPay;
   final VoidCallback onReschedule;
   final VoidCallback onCancel;
   final VoidCallback onReview;
+  final ValueChanged<bool> onReminderChanged;
+  final VoidCallback onTap;
 
   const _AppointmentCard({
     required this.appointment,
@@ -1145,10 +1290,13 @@ final bool canCancel;
     required this.canCancel,
     required this.canReview,
     required this.isPaying,
+    required this.isUpdatingReminder,
     required this.onPay,
     required this.onReschedule,
     required this.onCancel,
     required this.onReview,
+    required this.onReminderChanged,
+    required this.onTap,
   });
 
   @override
@@ -1156,250 +1304,298 @@ final bool canCancel;
     BuildContext context,
   ) {
     return Card(
-      child: Padding(
-        padding:
-            const EdgeInsets.all(
-          18,
-        ),
-        child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    appointment
-                        .serviceName,
-                    style:
-                        const TextStyle(
-                      fontSize: 18,
-                      fontWeight:
-                          FontWeight.bold,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding:
+              const EdgeInsets.all(
+            18,
+          ),
+          child: Column(
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      appointment
+                          .serviceName,
+                      style:
+                          const TextStyle(
+                        fontSize: 18,
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
 
-                const SizedBox(
-                  width: 8,
-                ),
-
-                _StatusChip(
-                  status:
-                      appointment.status,
-                ),
-              ],
-            ),
-
-            const SizedBox(
-              height: 16,
-            ),
-
-            _DetailRow(
-              icon:
-                  Icons.person_outline,
-              text: appointment
-                  .barberFullName,
-            ),
-
-            const SizedBox(
-              height: 9,
-            ),
-
-            _DetailRow(
-              icon:
-                  Icons.schedule_outlined,
-              text:
-                  formattedDate,
-            ),
-
-            const SizedBox(
-              height: 9,
-            ),
-
-            _DetailRow(
-              icon:
-                  Icons.payments_outlined,
-              text:
-                  '${appointment.finalPrice.toStringAsFixed(2)} BAM',
-            ),
-
-            const SizedBox(
-              height: 14,
-            ),
-
-            _PaymentStatus(
-              isPaid:
-                  appointment.isPaid,
-            ),
-
-            if (appointment.status
-                        .toLowerCase() ==
-                    'cancelled' &&
-                appointment
-                        .cancellationReason
-                        ?.isNotEmpty ==
-                    true) ...[
-              const SizedBox(
-                height: 12,
-              ),
-
-              Text(
-                'Reason: '
-                '${appointment.cancellationReason}',
-                style:
-                    const TextStyle(
-                  color: AppTheme
-                      .textSecondaryColor,
-                ),
-              ),
-            ],
-
-            if (!isHistory &&
-                (canPay ||
-                    canReschedule ||
-                    canCancel)) ...[
-              const SizedBox(
-                height: 18,
-              ),
-
-              if (canPay)
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed:
-                        isPaying
-                            ? null
-                            : onPay,
-                    icon: isPaying
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child:
-                                CircularProgressIndicator(
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Icon(
-                            Icons.credit_card,
-                          ),
-                    label: Text(
-                      isPaying
-                          ? 'Processing...'
-                          : 'Pay now',
-                    ),
+                  const SizedBox(
+                    width: 8,
                   ),
-                ),
 
-              if (canPay &&
-                  (canReschedule || canCancel))
+                  _StatusChip(
+                    status:
+                        appointment.status,
+                  ),
+                ],
+              ),
+
+              const SizedBox(
+                height: 16,
+              ),
+
+              _DetailRow(
+                icon:
+                    Icons.person_outline,
+                text: appointment
+                    .barberFullName,
+              ),
+
+              const SizedBox(
+                height: 9,
+              ),
+
+              _DetailRow(
+                icon:
+                    Icons.schedule_outlined,
+                text:
+                    formattedDate,
+              ),
+
+              const SizedBox(
+                height: 9,
+              ),
+
+              _DetailRow(
+                icon:
+                    Icons.payments_outlined,
+                text:
+                    '${appointment.finalPrice.toStringAsFixed(2)} BAM',
+              ),
+
+              const SizedBox(
+                height: 14,
+              ),
+
+              _PaymentStatus(
+                isPaid:
+                    appointment.isPaid,
+              ),
+
+              if (!isHistory) ...[
                 const SizedBox(
                   height: 10,
                 ),
 
-              if (canReschedule || canCancel)
                 Row(
                   children: [
-                    if (canReschedule)
-                      Expanded(
-                        child:
-                            OutlinedButton.icon(
-                          onPressed:
-                              onReschedule,
-                          icon: const Icon(
-                            Icons
-                                .edit_calendar_outlined,
-                          ),
-                          label: const Text(
-                            'Reschedule',
-                          ),
+                    const Icon(
+                      Icons.notifications_active_outlined,
+                      size: 20,
+                      color: AppTheme.accentColor,
+                    ),
+
+                    const SizedBox(
+                      width: 10,
+                    ),
+
+                    const Expanded(
+                      child: Text(
+                        'Appointment reminder',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
+                    ),
 
-                    if (canReschedule &&
-                        canCancel)
+                    if (isUpdatingReminder)
                       const SizedBox(
-                        width: 10,
-                      ),
-
-                    if (canCancel)
-                      Expanded(
-                        child:
-                            OutlinedButton.icon(
-                          onPressed:
-                              onCancel,
-                          icon: const Icon(
-                            Icons.close,
-                          ),
-                          label: const Text(
-                            'Cancel',
-                          ),
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
                         ),
+                      )
+                    else
+                      Switch(
+                        value: appointment.reminderEnabled,
+                        onChanged: onReminderChanged,
                       ),
                   ],
                 ),
-            ],
+              ],
 
-            if (isHistory &&
-                appointment.status
-                        .toLowerCase() ==
-                    'completed') ...[
-              const SizedBox(
-                height: 18,
-              ),
+              if (appointment.status
+                          .toLowerCase() ==
+                      'cancelled' &&
+                  appointment
+                          .cancellationReason
+                          ?.isNotEmpty ==
+                      true) ...[
+                const SizedBox(
+                  height: 12,
+                ),
 
-              if (canReview)
-                SizedBox(
-                  width:
-                      double.infinity,
-                  child:
-                      OutlinedButton.icon(
-                    onPressed:
-                        onReview,
-                    icon:
-                        const Icon(
-                      Icons.star_outline,
-                    ),
-                    label:
-                        const Text(
-                      'Leave review',
+                Text(
+                  'Reason: '
+                  '${appointment.cancellationReason}',
+                  style:
+                      const TextStyle(
+                    color: AppTheme
+                        .textSecondaryColor,
+                  ),
+                ),
+              ],
+
+              if (!isHistory &&
+                  (canPay ||
+                      canReschedule ||
+                      canCancel)) ...[
+                const SizedBox(
+                  height: 18,
+                ),
+
+                if (canPay)
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed:
+                          isPaying
+                              ? null
+                              : onPay,
+                      icon: isPaying
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child:
+                                  CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.credit_card,
+                            ),
+                      label: Text(
+                        isPaying
+                            ? 'Processing...'
+                            : 'Pay now',
+                      ),
                     ),
                   ),
-                )
-              else if (appointment
-                  .hasReview)
-                const Row(
-                  children: [
-                    Icon(
-                      Icons
-                          .check_circle_outline,
-                      size: 18,
-                      color:
-                          Colors.green,
-                    ),
 
-                    SizedBox(
-                      width: 7,
-                    ),
+                if (canPay &&
+                    (canReschedule || canCancel))
+                  const SizedBox(
+                    height: 10,
+                  ),
 
-                    Text(
-                      'Reviewed',
-                      style:
-                          TextStyle(
-                        color:
-                            Colors.green,
-                        fontWeight:
-                            FontWeight.w500,
+                if (canReschedule || canCancel)
+                  Row(
+                    children: [
+                      if (canReschedule)
+                        Expanded(
+                          child:
+                              OutlinedButton.icon(
+                            onPressed:
+                                onReschedule,
+                            icon: const Icon(
+                              Icons
+                                  .edit_calendar_outlined,
+                            ),
+                            label: const Text(
+                              'Reschedule',
+                            ),
+                          ),
+                        ),
+
+                      if (canReschedule &&
+                          canCancel)
+                        const SizedBox(
+                          width: 10,
+                        ),
+
+                      if (canCancel)
+                        Expanded(
+                          child:
+                              OutlinedButton.icon(
+                            onPressed:
+                                onCancel,
+                            icon: const Icon(
+                              Icons.close,
+                            ),
+                            label: const Text(
+                              'Cancel',
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+              ],
+
+              if (isHistory &&
+                  appointment.status
+                          .toLowerCase() ==
+                      'completed') ...[
+                const SizedBox(
+                  height: 18,
+                ),
+
+                if (canReview)
+                  SizedBox(
+                    width:
+                        double.infinity,
+                    child:
+                        OutlinedButton.icon(
+                      onPressed:
+                          onReview,
+                      icon:
+                          const Icon(
+                        Icons.star_outline,
+                      ),
+                      label:
+                          const Text(
+                        'Leave review',
                       ),
                     ),
-                  ],
-                ),
+                  )
+                else if (appointment
+                    .hasReview)
+                  const Row(
+                    children: [
+                      Icon(
+                        Icons
+                            .check_circle_outline,
+                        size: 18,
+                        color:
+                            Colors.green,
+                      ),
+
+                      SizedBox(
+                        width: 7,
+                      ),
+
+                      Text(
+                        'Reviewed',
+                        style:
+                            TextStyle(
+                          color:
+                              Colors.green,
+                          fontWeight:
+                              FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
             ],
-          ],
+          ),
         ),
-      ),
+      )
     );
   }
 }
