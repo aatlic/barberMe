@@ -89,11 +89,18 @@ namespace BarberMe.Services.Services
 
             if (!string.IsNullOrWhiteSpace(search.FTS))
             {
+                var fts = search.FTS.Trim();
+
                 query = query.Where(x =>
-                    x.Client.FirstName.Contains(search.FTS) ||
-                    x.Client.LastName.Contains(search.FTS) ||
-                    x.Barber.FirstName.Contains(search.FTS) ||
-                    x.Barber.LastName.Contains(search.FTS));
+                    x.Client.FirstName.Contains(fts) ||
+                    x.Client.LastName.Contains(fts) ||
+                    (x.Client.FirstName + " " + x.Client.LastName).Contains(fts) ||
+
+                    x.Barber.FirstName.Contains(fts) ||
+                    x.Barber.LastName.Contains(fts) ||
+                    (x.Barber.FirstName + " " + x.Barber.LastName).Contains(fts) ||
+
+                    x.BarberService.Service.Name.Contains(fts));
             }
 
             if (search.AppointmentStatusId.HasValue)
@@ -124,7 +131,7 @@ namespace BarberMe.Services.Services
                     ? query.OrderBy(x => x.StartDateTime)
                     : query.OrderByDescending(x => x.StartDateTime);
 
-            var list = await query
+            var list = await orderedQuery
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -146,6 +153,7 @@ namespace BarberMe.Services.Services
                 .Include(x => x.BarberService)
                     .ThenInclude(x => x.Service)
                 .Include(x => x.AppointmentStatus)
+                .Include(x => x.Review)
                 .FirstOrDefaultAsync(x => x.AppointmentId == id);
 
             if (entity == null)

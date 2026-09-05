@@ -19,6 +19,7 @@ class AppointmentService {
     DateTime? dateFrom,
     DateTime? dateTo,
     String? listType,
+    String? fts,
     int page = 1,
     int pageSize = 20,
   }) async {
@@ -31,6 +32,10 @@ class AppointmentService {
 
     if (listType != null) {
       queryParameters['ListType'] = listType;
+    }
+
+    if (fts != null && fts.trim().isNotEmpty) {
+      queryParameters['FTS'] = fts.trim();
     }
 
     if (appointmentStatusId != null) {
@@ -318,6 +323,46 @@ class AppointmentService {
     try {
       final data =
           jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (data['message'] != null) {
+        message = data['message'].toString();
+      }
+    } catch (_) {}
+
+    throw Exception(message);
+  }
+
+  Future<Appointment> getAppointmentById(
+    int appointmentId,
+  ) async {
+    final token =
+        await _storage.read(key: 'jwt_token');
+
+    final response = await http.get(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/api/Appointments/$appointmentId',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      final data =
+          jsonDecode(response.body)
+              as Map<String, dynamic>;
+
+      return Appointment.fromJson(data);
+    }
+
+    String message =
+        'Failed to load appointment details.';
+
+    try {
+      final data =
+          jsonDecode(response.body)
+              as Map<String, dynamic>;
 
       if (data['message'] != null) {
         message = data['message'].toString();
