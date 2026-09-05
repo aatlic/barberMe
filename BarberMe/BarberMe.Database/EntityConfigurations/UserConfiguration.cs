@@ -38,6 +38,9 @@ namespace BarberMe.Database.EntityConfigurations
             builder.Property(x => x.HasNoShowPenalty)
                 .HasDefaultValue(false);
 
+            builder.Property(x => x.TokenVersion)
+                .HasDefaultValue(0);
+
             builder.HasData(
                 new User
                 {
@@ -48,7 +51,7 @@ namespace BarberMe.Database.EntityConfigurations
                     Email = "admin@barberme.com",
                     PhoneNumber = "000000000",
 
-                    PasswordHash = "$2a$11$3imUFH1O5lE9g7XuS3hZOOUVPwdRz4yQjbw/4pyzVIeXf/ZHTbBUu",
+                    PasswordHash = "$2a$11$1wpG1zEd3NVs1RCO9Cr3Ce4Ab1x9vS3v5bGBSZPMxEVkF2zmwAZQa",
 
                     RoleId = (int)RoleType.Admin,
 
@@ -76,7 +79,7 @@ namespace BarberMe.Database.EntityConfigurations
                     Email = "barber@barberme.com",
                     PhoneNumber = "061111111",
 
-                    PasswordHash = "$2a$11$3imUFH1O5lE9g7XuS3hZOOUVPwdRz4yQjbw/4pyzVIeXf/ZHTbBUu",
+                    PasswordHash = "$2a$11$1wpG1zEd3NVs1RCO9Cr3Ce4Ab1x9vS3v5bGBSZPMxEVkF2zmwAZQa",
 
                     RoleId = (int)RoleType.Barber,
                     BarberLevelId = 2, 
@@ -103,7 +106,7 @@ namespace BarberMe.Database.EntityConfigurations
                     Email = "client@barberme.com",
                     PhoneNumber = "062222222",
 
-                    PasswordHash = "$2a$11$3imUFH1O5lE9g7XuS3hZOOUVPwdRz4yQjbw/4pyzVIeXf/ZHTbBUu",
+                    PasswordHash = "$2a$11$1wpG1zEd3NVs1RCO9Cr3Ce4Ab1x9vS3v5bGBSZPMxEVkF2zmwAZQa",
 
                     RoleId = (int)RoleType.Client,
                     BarberLevelId = null,

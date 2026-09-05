@@ -22,6 +22,7 @@
         public int FailedLoginAttempts { get; set; }
         public bool IsLocked { get; set; }
         public DateTime? LockedUntil { get; set; }
+        public int TokenVersion { get; set; }
 
         public bool IsActive { get; set; } = true;
         public bool RequirePasswordChange { get; set; }

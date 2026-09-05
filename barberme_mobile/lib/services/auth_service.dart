@@ -50,6 +50,28 @@ class AuthService {
   }
 
   Future<void> logout() async {
-    await _storage.delete(key: 'jwt_token');
+    final token = await _storage.read(
+      key: 'jwt_token',
+    );
+
+    if (token != null && token.isNotEmpty) {
+      try {
+        await http.post(
+          Uri.parse(
+            '${ApiConfig.baseUrl}/api/Users/logout',
+          ),
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        );
+      } catch (_) {
+        // Local logout should still continue
+        // even if the API is temporarily unavailable.
+      }
+    }
+
+    await _storage.delete(
+      key: 'jwt_token',
+    );
   }
 }

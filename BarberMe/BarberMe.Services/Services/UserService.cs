@@ -458,10 +458,9 @@ namespace BarberMe.Services.Services
                     "The temporary password has expired. Request a new password.");
             }
 
-            var passwordValid = true;
-            //var passwordValid = BCrypt.Net.BCrypt.Verify(
-            //    request.Password,
-            //    user.PasswordHash);
+            var passwordValid = BCrypt.Net.BCrypt.Verify(
+                request.Password,
+                user.PasswordHash);
 
             if (!passwordValid)
             {
@@ -939,6 +938,21 @@ namespace BarberMe.Services.Services
                 .ToListAsync();
 
             return _mapper.Map<List<UserResponse>>(barbers);
+        }
+
+        public async Task LogoutAsync()
+        {
+            var userId = GetCurrentUserId();
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(x => x.UserId == userId);
+
+            if (user == null)
+                throw new NotFoundException("User does not exist.");
+
+            user.TokenVersion++;
+
+            await _context.SaveChangesAsync();
         }
     }
 }

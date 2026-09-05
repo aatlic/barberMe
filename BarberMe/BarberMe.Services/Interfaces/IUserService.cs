@@ -35,5 +35,7 @@ namespace BarberMe.Services.Interfaces
         Task DeactivateUserAsync(int id);
         Task ActivateUserAsync(int id);
         Task<List<UserResponse>> GetActiveBarbersAsync();
+
+        Task LogoutAsync();
     }
 }
