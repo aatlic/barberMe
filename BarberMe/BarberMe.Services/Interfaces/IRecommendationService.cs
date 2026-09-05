@@ -10,5 +10,9 @@ namespace BarberMe.Services.Interfaces
         Task<RecommendationFeedbackResponse> AddFeedbackAsync(
             int recommendationId,
             RecommendationFeedbackInsertRequest request);
+
+        Task SetAcceptanceAsync(
+            int recommendationId,
+            bool wasAccepted);
     }
 }

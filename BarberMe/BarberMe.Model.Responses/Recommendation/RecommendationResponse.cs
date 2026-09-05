@@ -23,5 +23,7 @@
         public string Explanation { get; set; } = string.Empty;
 
         public DateTime CreatedAt { get; set; }
+
+        public bool? WasAccepted { get; set; }
     }
 }

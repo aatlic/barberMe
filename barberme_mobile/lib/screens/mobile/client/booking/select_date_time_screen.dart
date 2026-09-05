@@ -1,24 +1,37 @@
 import 'package:flutter/material.dart';
-import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' hide Card;
+import 'package:table_calendar/table_calendar.dart';
 
 import '../../../../models/available_slot.dart';
-import '../../../../models/barber_service.dart';
 import '../../../../models/calendar_availability.dart';
-import '../../../../models/user.dart';
 import '../../../../services/appointment_service.dart';
 import '../../../../services/payment_service.dart';
-
 import '../client_main_screen.dart';
+import '../../../../services/recommendation_service.dart';
 
 class SelectDateTimeScreen extends StatefulWidget {
-  final User barber;
-  final BarberService barberService;
+  final int barberId;
+  final int barberServiceId;
+  final int serviceId;
+
+  final String barberName;
+  final String serviceName;
+
+  final double price;
+  final int durationMinutes;
+
+  final int? recommendationId;
 
   const SelectDateTimeScreen({
     super.key,
-    required this.barber,
-    required this.barberService,
+    required this.barberId,
+    required this.barberServiceId,
+    required this.serviceId,
+    required this.barberName,
+    required this.serviceName,
+    required this.price,
+    required this.durationMinutes,
+    this.recommendationId,
   });
 
   @override
@@ -30,6 +43,12 @@ class _SelectDateTimeScreenState
     extends State<SelectDateTimeScreen> {
   final AppointmentService _appointmentService =
       AppointmentService();
+
+  final PaymentService _paymentService =
+      PaymentService();
+  
+  final RecommendationService _recommendationService =
+      RecommendationService();
 
   bool _isBooking = false;
 
@@ -47,15 +66,15 @@ class _SelectDateTimeScreenState
   String? _errorMessage;
   String? _calendarErrorMessage;
 
-  final PaymentService _paymentService = PaymentService();
-
   @override
   void initState() {
     super.initState();
 
     _focusedDay = DateTime.now();
 
-    _loadCalendarAvailability(_focusedDay);
+    _loadCalendarAvailability(
+      _focusedDay,
+    );
   }
 
   Future<void> _loadCalendarAvailability(
@@ -69,8 +88,8 @@ class _SelectDateTimeScreenState
     try {
       final result =
           await _appointmentService.getCalendarAvailability(
-        barberId: widget.barber.id,
-        serviceId: widget.barberService.serviceId,
+        barberId: widget.barberId,
+        serviceId: widget.serviceId,
         year: focusedDay.year,
         month: focusedDay.month,
       );
@@ -86,7 +105,11 @@ class _SelectDateTimeScreenState
 
       setState(() {
         _calendarErrorMessage =
-            e.toString().replaceFirst('Exception: ', '');
+            e.toString().replaceFirst(
+          'Exception: ',
+          '',
+        );
+
         _isLoadingCalendar = false;
       });
     }
@@ -95,8 +118,12 @@ class _SelectDateTimeScreenState
   CalendarAvailability? _getAvailability(
     DateTime day,
   ) {
-    for (final item in _calendarAvailability) {
-      if (isSameDay(item.date, day)) {
+    for (final item
+        in _calendarAvailability) {
+      if (isSameDay(
+        item.date,
+        day,
+      )) {
         return item;
       }
     }
@@ -104,7 +131,9 @@ class _SelectDateTimeScreenState
     return null;
   }
 
-  bool _isDaySelectable(DateTime day) {
+  bool _isDaySelectable(
+    DateTime day,
+  ) {
     final now = DateTime.now();
 
     final today = DateTime(
@@ -119,16 +148,19 @@ class _SelectDateTimeScreenState
       day.day,
     );
 
-    if (normalizedDay.isBefore(today)) {
+    if (normalizedDay.isBefore(
+      today,
+    )) {
       return false;
     }
 
-    final availability = _getAvailability(day);
+    final availability =
+        _getAvailability(day);
 
-    return availability?.isWorkingDay == true;
+    return availability?.isWorkingDay ==
+        true;
   }
 
-  
   Future<void> _loadAvailableSlots() async {
     if (_selectedDate == null) {
       return;
@@ -143,8 +175,8 @@ class _SelectDateTimeScreenState
     try {
       final slots =
           await _appointmentService.getAvailableSlots(
-        barberId: widget.barber.id,
-        serviceId: widget.barberService.serviceId,
+        barberId: widget.barberId,
+        serviceId: widget.serviceId,
         date: _selectedDate!,
       );
 
@@ -159,15 +191,23 @@ class _SelectDateTimeScreenState
 
       setState(() {
         _errorMessage =
-            e.toString().replaceFirst('Exception: ', '');
+            e.toString().replaceFirst(
+          'Exception: ',
+          '',
+        );
+
         _isLoadingSlots = false;
       });
     }
   }
 
-  Future<void> _payAppointment(int appointmentId) async {
+  Future<void> _payAppointment(
+    int appointmentId,
+  ) async {
     final payment =
-        await _paymentService.createPayment(appointmentId);
+        await _paymentService.createPayment(
+      appointmentId,
+    );
 
     if (payment.clientSecret == null ||
         payment.clientSecret!.isEmpty) {
@@ -181,12 +221,14 @@ class _SelectDateTimeScreenState
           SetupPaymentSheetParameters(
         paymentIntentClientSecret:
             payment.clientSecret!,
-        merchantDisplayName: 'Barber Me',
+        merchantDisplayName:
+            'Barber Me',
         style: ThemeMode.system,
       ),
     );
 
-    await Stripe.instance.presentPaymentSheet();
+    await Stripe.instance
+        .presentPaymentSheet();
 
     await _paymentService.confirmPayment(
       payment.id,
@@ -194,7 +236,8 @@ class _SelectDateTimeScreenState
   }
 
   Future<void> _bookAppointment() async {
-    if (_selectedSlot == null || _isBooking) {
+    if (_selectedSlot == null ||
+        _isBooking) {
       return;
     }
 
@@ -204,46 +247,27 @@ class _SelectDateTimeScreenState
 
     try {
       final appointment =
-          await _appointmentService.createAppointment(
-        barberServiceId: widget.barberService.id,
-        startDateTime: _selectedSlot!.startDateTime,
+          await _appointmentService
+              .createAppointment(
+        barberServiceId:
+            widget.barberServiceId,
+        startDateTime:
+            _selectedSlot!.startDateTime,
         reminderEnabled: false,
       );
 
+      if (widget.recommendationId != null) {
+        await _recommendationService.setAcceptance(
+          recommendationId:
+              widget.recommendationId!,
+          wasAccepted: true,
+        );
+      }
+      
       if (!mounted) return;
 
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) {
-          return AlertDialog(
-            icon: const Icon(
-              Icons.check_circle_outline,
-              size: 48,
-            ),
-            title: const Text(
-              'Appointment booked',
-            ),
-            content: const Text(
-              'Your appointment has been booked successfully.',
-            ),
-            actions: [
-              FilledButton(
-                onPressed: () {
-                  Navigator.of(dialogContext).pop();
-                },
-                child: const Text(
-                  'Continue',
-                ),
-              ),
-            ],
-          );
-        },
-      );
-
-      if (!mounted) return;
-
-      final enableReminder = await showDialog<bool>(
+      final enableReminder =
+          await showDialog<bool>(
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) {
@@ -261,7 +285,9 @@ class _SelectDateTimeScreenState
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.of(dialogContext).pop(false);
+                  Navigator.of(
+                    dialogContext,
+                  ).pop(false);
                 },
                 child: const Text(
                   'Not now',
@@ -269,7 +295,9 @@ class _SelectDateTimeScreenState
               ),
               FilledButton(
                 onPressed: () {
-                  Navigator.of(dialogContext).pop(true);
+                  Navigator.of(
+                    dialogContext,
+                  ).pop(true);
                 },
                 child: const Text(
                   'Set reminder',
@@ -283,15 +311,18 @@ class _SelectDateTimeScreenState
       if (!mounted) return;
 
       if (enableReminder == true) {
-        await _appointmentService.updateReminder(
-          appointmentId: appointment.id,
+        await _appointmentService
+            .updateReminder(
+          appointmentId:
+              appointment.id,
           reminderEnabled: true,
         );
       }
 
       if (!mounted) return;
 
-      final payNow = await showDialog<bool>(
+      final payNow =
+          await showDialog<bool>(
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) {
@@ -305,13 +336,15 @@ class _SelectDateTimeScreenState
             ),
             content: Text(
               'Would you like to pay '
-              '${widget.barberService.price.toStringAsFixed(2)} BAM '
+              '${widget.price.toStringAsFixed(2)} BAM '
               'now?',
             ),
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.of(dialogContext).pop(false);
+                  Navigator.of(
+                    dialogContext,
+                  ).pop(false);
                 },
                 child: const Text(
                   'Pay later',
@@ -319,7 +352,9 @@ class _SelectDateTimeScreenState
               ),
               FilledButton(
                 onPressed: () {
-                  Navigator.of(dialogContext).pop(true);
+                  Navigator.of(
+                    dialogContext,
+                  ).pop(true);
                 },
                 child: const Text(
                   'Pay now',
@@ -357,9 +392,12 @@ class _SelectDateTimeScreenState
                 actions: [
                   FilledButton(
                     onPressed: () {
-                      Navigator.of(dialogContext).pop();
+                      Navigator.of(
+                        dialogContext,
+                      ).pop();
                     },
-                    child: const Text('OK'),
+                    child:
+                        const Text('OK'),
                   ),
                 ],
               );
@@ -370,7 +408,8 @@ class _SelectDateTimeScreenState
 
           if (e.error.code ==
               FailureCode.Canceled) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(context)
+                .showSnackBar(
               const SnackBar(
                 content: Text(
                   'Payment was cancelled.',
@@ -378,7 +417,8 @@ class _SelectDateTimeScreenState
               ),
             );
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(context)
+                .showSnackBar(
               SnackBar(
                 content: Text(
                   e.error.localizedMessage ??
@@ -390,10 +430,16 @@ class _SelectDateTimeScreenState
         }
       }
 
-      Navigator.of(context).pushAndRemoveUntil(
+      if (!mounted) return;
+
+      Navigator.of(context)
+          .pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (_) => const ClientMainScreen(
+          builder: (_) =>
+              ClientMainScreen(
             initialIndex: 1,
+            recommendationIdToRate:
+                widget.recommendationId,
           ),
         ),
         (route) => false,
@@ -401,7 +447,8 @@ class _SelectDateTimeScreenState
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
         SnackBar(
           content: Text(
             e.toString().replaceFirst(
@@ -420,28 +467,39 @@ class _SelectDateTimeScreenState
     }
   }
 
-  String _formatTime(DateTime dateTime) {
+  String _formatTime(
+    DateTime dateTime,
+  ) {
     final hour =
-        dateTime.hour.toString().padLeft(2, '0');
+        dateTime.hour
+            .toString()
+            .padLeft(
+              2,
+              '0',
+            );
 
     final minute =
-        dateTime.minute.toString().padLeft(2, '0');
+        dateTime.minute
+            .toString()
+            .padLeft(
+              2,
+              '0',
+            );
 
     return '$hour:$minute';
   }
 
   @override
-  Widget build(BuildContext context) {
-    final barberName =
-        '${widget.barber.firstName} '
-        '${widget.barber.lastName}'.trim();
-
+  Widget build(
+    BuildContext context,
+  ) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'Select date & time',
           style: TextStyle(
-            fontWeight: FontWeight.bold,
+            fontWeight:
+                FontWeight.bold,
           ),
         ),
       ),
@@ -450,48 +508,64 @@ class _SelectDateTimeScreenState
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(20),
+                padding:
+                    const EdgeInsets.all(
+                  20,
+                ),
                 children: [
-                  _buildBookingSummary(
-                    barberName,
-                  ),
+                  _buildBookingSummary(),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(
+                    height: 24,
+                  ),
 
                   Text(
                     'Select date',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(
-                          fontWeight:
-                              FontWeight.bold,
-                        ),
+                    style:
+                        Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(
+                              fontWeight:
+                                  FontWeight
+                                      .bold,
+                            ),
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(
+                    height: 12,
+                  ),
 
                   _buildCalendar(),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(
+                    height: 12,
+                  ),
 
                   const _CalendarLegend(),
 
-                  if (_selectedDate != null) ...[
-                    const SizedBox(height: 28),
+                  if (_selectedDate !=
+                      null) ...[
+                    const SizedBox(
+                      height: 28,
+                    ),
 
                     Text(
                       'Available times',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(
-                            fontWeight:
-                                FontWeight.bold,
-                          ),
+                      style:
+                          Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(
+                                fontWeight:
+                                    FontWeight
+                                        .bold,
+                              ),
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(
+                      height: 12,
+                    ),
 
                     _buildSlots(),
                   ],
@@ -509,18 +583,22 @@ class _SelectDateTimeScreenState
   Widget _buildCalendar() {
     if (_isLoadingCalendar) {
       return const Padding(
-        padding: EdgeInsets.symmetric(
+        padding:
+            EdgeInsets.symmetric(
           vertical: 40,
         ),
         child: Center(
-          child: CircularProgressIndicator(),
+          child:
+              CircularProgressIndicator(),
         ),
       );
     }
 
-    if (_calendarErrorMessage != null) {
+    if (_calendarErrorMessage !=
+        null) {
       return Padding(
-        padding: const EdgeInsets.symmetric(
+        padding:
+            const EdgeInsets.symmetric(
           vertical: 20,
         ),
         child: Column(
@@ -530,14 +608,19 @@ class _SelectDateTimeScreenState
               size: 42,
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(
+              height: 12,
+            ),
 
             Text(
               _calendarErrorMessage!,
-              textAlign: TextAlign.center,
+              textAlign:
+                  TextAlign.center,
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(
+              height: 12,
+            ),
 
             OutlinedButton(
               onPressed: () {
@@ -570,7 +653,10 @@ class _SelectDateTimeScreenState
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(8),
+        padding:
+            const EdgeInsets.all(
+          8,
+        ),
         child: TableCalendar(
           firstDay: firstDay,
           lastDay: lastDay,
@@ -579,25 +665,33 @@ class _SelectDateTimeScreenState
           calendarFormat:
               CalendarFormat.month,
 
-          availableCalendarFormats: const {
-            CalendarFormat.month: 'Month',
+          availableCalendarFormats:
+              const {
+            CalendarFormat.month:
+                'Month',
           },
 
-          headerStyle: const HeaderStyle(
+          headerStyle:
+              const HeaderStyle(
             formatButtonVisible: false,
             titleCentered: true,
           ),
 
-          selectedDayPredicate: (day) {
-            return _selectedDate != null &&
+          selectedDayPredicate:
+              (day) {
+            return _selectedDate !=
+                    null &&
                 isSameDay(
                   _selectedDate,
                   day,
                 );
           },
 
-          enabledDayPredicate: (day) {
-            return _isDaySelectable(day);
+          enabledDayPredicate:
+              (day) {
+            return _isDaySelectable(
+              day,
+            );
           },
 
           onDaySelected: (
@@ -611,8 +705,11 @@ class _SelectDateTimeScreenState
             }
 
             setState(() {
-              _selectedDate = selectedDay;
-              _focusedDay = focusedDay;
+              _selectedDate =
+                  selectedDay;
+
+              _focusedDay =
+                  focusedDay;
 
               _selectedSlot = null;
               _availableSlots = [];
@@ -623,9 +720,11 @@ class _SelectDateTimeScreenState
             await _loadAvailableSlots();
           },
 
-          onPageChanged: (focusedDay) {
+          onPageChanged:
+              (focusedDay) {
             setState(() {
-              _focusedDay = focusedDay;
+              _focusedDay =
+                  focusedDay;
 
               _selectedDate = null;
               _selectedSlot = null;
@@ -666,9 +765,12 @@ class _SelectDateTimeScreenState
                 child: Container(
                   width: 6,
                   height: 6,
-                  decoration: BoxDecoration(
-                    color: markerColor,
-                    shape: BoxShape.circle,
+                  decoration:
+                      BoxDecoration(
+                    color:
+                        markerColor,
+                    shape:
+                        BoxShape.circle,
                   ),
                 ),
               );
@@ -679,12 +781,13 @@ class _SelectDateTimeScreenState
     );
   }
 
-  Widget _buildBookingSummary(
-    String barberName,
-  ) {
+  Widget _buildBookingSummary() {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding:
+            const EdgeInsets.all(
+          16,
+        ),
         child: Column(
           children: [
             Row(
@@ -694,21 +797,27 @@ class _SelectDateTimeScreenState
                   size: 20,
                 ),
 
-                const SizedBox(width: 10),
+                const SizedBox(
+                  width: 10,
+                ),
 
                 Expanded(
                   child: Text(
-                    barberName,
-                    style: const TextStyle(
+                    widget.barberName,
+                    style:
+                        const TextStyle(
                       fontWeight:
-                          FontWeight.w600,
+                          FontWeight
+                              .w600,
                     ),
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(
+              height: 12,
+            ),
 
             Row(
               children: [
@@ -717,22 +826,27 @@ class _SelectDateTimeScreenState
                   size: 20,
                 ),
 
-                const SizedBox(width: 10),
+                const SizedBox(
+                  width: 10,
+                ),
 
                 Expanded(
                   child: Text(
-                    widget.barberService
-                        .serviceName,
-                    style: const TextStyle(
+                    widget.serviceName,
+                    style:
+                        const TextStyle(
                       fontWeight:
-                          FontWeight.w600,
+                          FontWeight
+                              .w600,
                     ),
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(
+              height: 12,
+            ),
 
             Row(
               children: [
@@ -741,17 +855,20 @@ class _SelectDateTimeScreenState
                   size: 20,
                 ),
 
-                const SizedBox(width: 10),
+                const SizedBox(
+                  width: 10,
+                ),
 
                 Text(
-                  '${widget.barberService.durationMinutes} min',
+                  '${widget.durationMinutes} min',
                 ),
 
                 const Spacer(),
 
                 Text(
-                  '${widget.barberService.price.toStringAsFixed(2)} BAM',
-                  style: const TextStyle(
+                  '${widget.price.toStringAsFixed(2)} BAM',
+                  style:
+                      const TextStyle(
                     fontWeight:
                         FontWeight.bold,
                   ),
@@ -767,7 +884,8 @@ class _SelectDateTimeScreenState
   Widget _buildSlots() {
     if (_isLoadingSlots) {
       return const Padding(
-        padding: EdgeInsets.symmetric(
+        padding:
+            EdgeInsets.symmetric(
           vertical: 30,
         ),
         child: Center(
@@ -779,7 +897,8 @@ class _SelectDateTimeScreenState
 
     if (_errorMessage != null) {
       return Padding(
-        padding: const EdgeInsets.symmetric(
+        padding:
+            const EdgeInsets.symmetric(
           vertical: 16,
         ),
         child: Column(
@@ -789,14 +908,19 @@ class _SelectDateTimeScreenState
               size: 42,
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(
+              height: 12,
+            ),
 
             Text(
               _errorMessage!,
-              textAlign: TextAlign.center,
+              textAlign:
+                  TextAlign.center,
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(
+              height: 12,
+            ),
 
             OutlinedButton(
               onPressed:
@@ -812,13 +936,15 @@ class _SelectDateTimeScreenState
 
     if (_availableSlots.isEmpty) {
       return const Padding(
-        padding: EdgeInsets.symmetric(
+        padding:
+            EdgeInsets.symmetric(
           vertical: 24,
         ),
         child: Center(
           child: Text(
             'No available appointments for this date.',
-            textAlign: TextAlign.center,
+            textAlign:
+                TextAlign.center,
           ),
         ),
       );
@@ -828,32 +954,37 @@ class _SelectDateTimeScreenState
       spacing: 10,
       runSpacing: 10,
       children:
-          _availableSlots.map((slot) {
-        final isSelected =
-            _selectedSlot?.startDateTime ==
-                slot.startDateTime;
+          _availableSlots.map(
+        (slot) {
+          final isSelected =
+              _selectedSlot
+                      ?.startDateTime ==
+                  slot.startDateTime;
 
-        return ChoiceChip(
-          label: Text(
-            _formatTime(
-              slot.startDateTime,
+          return ChoiceChip(
+            label: Text(
+              _formatTime(
+                slot.startDateTime,
+              ),
             ),
-          ),
-          selected: isSelected,
-          onSelected: (_) {
-            setState(() {
-              _selectedSlot = slot;
-            });
-          },
-        );
-      }).toList(),
+            selected: isSelected,
+            onSelected: (_) {
+              setState(() {
+                _selectedSlot =
+                    slot;
+              });
+            },
+          );
+        },
+      ).toList(),
     );
   }
 
   Widget _buildBottomButton() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(
+      padding:
+          const EdgeInsets.fromLTRB(
         20,
         12,
         20,
@@ -888,11 +1019,14 @@ class _SelectDateTimeScreenState
   }
 }
 
-class _CalendarLegend extends StatelessWidget {
+class _CalendarLegend
+    extends StatelessWidget {
   const _CalendarLegend();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return const Row(
       mainAxisAlignment:
           MainAxisAlignment.center,
@@ -902,7 +1036,9 @@ class _CalendarLegend extends StatelessWidget {
           text: 'Available',
         ),
 
-        SizedBox(width: 22),
+        SizedBox(
+          width: 22,
+        ),
 
         _LegendItem(
           color: Colors.red,
@@ -913,7 +1049,8 @@ class _CalendarLegend extends StatelessWidget {
   }
 }
 
-class _LegendItem extends StatelessWidget {
+class _LegendItem
+    extends StatelessWidget {
   final Color color;
   final String text;
 
@@ -923,24 +1060,32 @@ class _LegendItem extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisSize:
+          MainAxisSize.min,
       children: [
         Container(
           width: 8,
           height: 8,
-          decoration: BoxDecoration(
+          decoration:
+              BoxDecoration(
             color: color,
-            shape: BoxShape.circle,
+            shape:
+                BoxShape.circle,
           ),
         ),
 
-        const SizedBox(width: 6),
+        const SizedBox(
+          width: 6,
+        ),
 
         Text(
           text,
-          style: const TextStyle(
+          style:
+              const TextStyle(
             fontSize: 12,
           ),
         ),

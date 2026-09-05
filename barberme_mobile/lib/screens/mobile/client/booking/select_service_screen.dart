@@ -172,8 +172,14 @@ class _SelectServiceScreenState
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => SelectDateTimeScreen(
-                      barber: widget.barber,
-                      barberService: service,
+                      barberId: widget.barber.id,
+                      barberServiceId: service.id,
+                      serviceId: service.serviceId,
+                      barberName:
+                          '${widget.barber.firstName} ${widget.barber.lastName}'.trim(),
+                      serviceName: service.serviceName,
+                      price: service.price,
+                      durationMinutes: service.durationMinutes,
                     ),
                   ),
                 );

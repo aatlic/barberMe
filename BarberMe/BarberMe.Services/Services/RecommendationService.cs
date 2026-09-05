@@ -327,7 +327,9 @@ namespace BarberMe.Services.Services
 
                         Explanation = entity.Explanation,
 
-                        CreatedAt = entity.CreatedAt
+                        CreatedAt = entity.CreatedAt,
+
+                        WasAccepted = entity.WasAccepted,
                     };
                 })
                 .OrderByDescending(x => x.Score)
@@ -418,6 +420,7 @@ namespace BarberMe.Services.Services
                 await _context.Recommendations
                     .Where(x =>
                         x.UserId == userId &&
+                        x.WasAccepted == null &&
                         !x.Feedbacks.Any())
                     .ToListAsync();
 
@@ -548,6 +551,39 @@ namespace BarberMe.Services.Services
             public decimal Score { get; init; }
             
             public string Explanation { get; init; } = string.Empty;
+        }
+
+        public async Task SetAcceptanceAsync(
+            int recommendationId,
+            bool wasAccepted)
+        {
+            if (recommendationId <= 0)
+            {
+                throw new BusinessException(
+                    "Recommendation is required.");
+            }
+
+            var userId = _currentUserService.UserId;
+
+            var recommendation = await _context.Recommendations
+                .FirstOrDefaultAsync(x =>
+                    x.RecommendationId == recommendationId);
+
+            if (recommendation == null)
+            {
+                throw new NotFoundException(
+                    "Recommendation does not exist.");
+            }
+
+            if (recommendation.UserId != userId)
+            {
+                throw new UnauthorizedException(
+                    "You are not allowed to update this recommendation.");
+            }
+
+            recommendation.WasAccepted = wasAccepted;
+
+            await _context.SaveChangesAsync();
         }
     }
 }
