@@ -8,9 +8,15 @@ import '../../../services/payment_service.dart';
 import '../../../services/review_service.dart';
 import 'appointments/reschedule_appointment_screen.dart';
 import 'appointment_details_screen.dart';
+import '../../../services/recommendation_service.dart';
 
 class ClientAppointmentsScreen extends StatefulWidget {
-  const ClientAppointmentsScreen({super.key});
+  final int? recommendationIdToRate;
+
+  const ClientAppointmentsScreen({
+    super.key,
+    this.recommendationIdToRate,
+  });
 
   @override
   State<ClientAppointmentsScreen> createState() =>
@@ -27,6 +33,11 @@ class _ClientAppointmentsScreenState
 
   final ReviewService _reviewService =
     ReviewService();
+
+  final RecommendationService _recommendationService =
+    RecommendationService();
+
+  bool _recommendationFeedbackShown = false;
 
   static const int _pageSize = 20;
 
@@ -71,6 +82,178 @@ class _ClientAppointmentsScreenState
     _loadUpcoming(
       refresh: true,
     );
+
+    if (widget.recommendationIdToRate != null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) {
+          _showRecommendationFeedback();
+        },
+      );
+    }
+  }
+
+  Future<void> _showRecommendationFeedback() async {
+    final recommendationId =
+        widget.recommendationIdToRate;
+
+    if (recommendationId == null ||
+        _recommendationFeedbackShown ||
+        !mounted) {
+      return;
+    }
+
+    _recommendationFeedbackShown = true;
+
+    int selectedRating = 0;
+    String comment = '';
+
+    final submitted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (
+            context,
+            setDialogState,
+          ) {
+            return AlertDialog(
+              icon: const Icon(
+                Icons.auto_awesome_outlined,
+                size: 44,
+                color: AppTheme.accentColor,
+              ),
+              title: const Text(
+                'Rate recommendation',
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'How useful was this recommendation for choosing your appointment?',
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    Row(
+                      mainAxisAlignment:
+                          MainAxisAlignment.center,
+                      children: List.generate(
+                        5,
+                        (index) {
+                          final rating = index + 1;
+
+                          return IconButton(
+                            onPressed: () {
+                              setDialogState(() {
+                                selectedRating =
+                                    rating;
+                              });
+                            },
+                            icon: Icon(
+                              rating <=
+                                      selectedRating
+                                  ? Icons.star
+                                  : Icons.star_border,
+                              size: 34,
+                              color: AppTheme
+                                  .accentColor,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    TextField(
+                      maxLength: 500,
+                      maxLines: 4,
+                      onChanged: (value) {
+                        comment = value;
+                      },
+                      decoration:
+                          const InputDecoration(
+                        labelText:
+                            'Comment (optional)',
+                        hintText:
+                            'Tell us what you think about this recommendation',
+                        border:
+                            OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(
+                      dialogContext,
+                    ).pop(false);
+                  },
+                  child: const Text(
+                    'Not now',
+                  ),
+                ),
+
+                FilledButton(
+                  onPressed:
+                      selectedRating == 0
+                          ? null
+                          : () {
+                              Navigator.of(
+                                dialogContext,
+                              ).pop(true);
+                            },
+                  child: const Text(
+                    'Submit',
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (submitted != true) {
+      return;
+    }
+
+    try {
+      await _recommendationService.addFeedback(
+        recommendationId:
+            recommendationId,
+        rating: selectedRating,
+        comment: comment,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Thank you for your feedback.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst(
+              'Exception: ',
+              '',
+            ),
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _loadUpcoming({

@@ -40,5 +40,17 @@ namespace BarberMe.API.Controllers
 
             return Ok(result);
         }
+
+        [HttpPut("{recommendationId:int}/acceptance")]
+        public async Task<IActionResult> SetAcceptance(
+            int recommendationId,
+            [FromBody] bool wasAccepted)
+        {
+            await _service.SetAcceptanceAsync(
+                recommendationId,
+                wasAccepted);
+
+            return Ok();
+        }
     }
 }
