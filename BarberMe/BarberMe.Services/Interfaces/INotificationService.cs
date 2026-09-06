@@ -14,5 +14,7 @@ namespace BarberMe.Services.Interfaces
         Task MarkAsRead(int id);
 
         Task<int> GetUnreadCount();
+
+        Task MarkAllAsRead();
     }
 }

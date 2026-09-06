@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../models/recommendation.dart';
 import '../../../services/recommendation_service.dart';
+
 import 'booking/select_date_time_screen.dart';
 
 class RecommendationsScreen extends StatefulWidget {
-  const RecommendationsScreen({super.key});
+  const RecommendationsScreen({
+    super.key,
+  });
 
   @override
   State<RecommendationsScreen> createState() =>
@@ -63,7 +66,7 @@ class _RecommendationsScreenState
     }
   }
 
-  Future<void> _acceptRecommendation(
+  Future<void> _bookRecommendation(
     Recommendation recommendation,
   ) async {
     if (_updatingRecommendationId != null) {
@@ -79,13 +82,18 @@ class _RecommendationsScreenState
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => SelectDateTimeScreen(
-            barberId: recommendation.barberId,
+            barberId:
+                recommendation.barberId,
             barberServiceId:
                 recommendation.barberServiceId,
-            serviceId: recommendation.serviceId,
-            barberName: recommendation.barberName,
-            serviceName: recommendation.serviceName,
-            price: recommendation.price,
+            serviceId:
+                recommendation.serviceId,
+            barberName:
+                recommendation.barberName,
+            serviceName:
+                recommendation.serviceName,
+            price:
+                recommendation.price,
             durationMinutes:
                 recommendation.durationMinutes,
             recommendationId:
@@ -139,22 +147,25 @@ class _RecommendationsScreenState
             'Not interested?',
           ),
           content: const Text(
-            'This recommendation will be marked as not interesting to you.',
+            'This recommendation will no longer be shown to you.',
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(dialogContext)
-                    .pop(false);
+                Navigator.of(
+                  dialogContext,
+                ).pop(false);
               },
               child: const Text(
                 'Cancel',
               ),
             ),
+
             FilledButton(
               onPressed: () {
-                Navigator.of(dialogContext)
-                    .pop(true);
+                Navigator.of(
+                  dialogContext,
+                ).pop(true);
               },
               child: const Text(
                 'Confirm',
@@ -186,7 +197,7 @@ class _RecommendationsScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Recommendation marked as not interested.',
+            'Recommendation removed.',
           ),
         ),
       );
@@ -241,8 +252,7 @@ class _RecommendationsScreenState
     if (_errorMessage != null) {
       return Center(
         child: Padding(
-          padding:
-              const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize:
                 MainAxisSize.min,
@@ -251,17 +261,21 @@ class _RecommendationsScreenState
                 Icons.error_outline,
                 size: 48,
               ),
+
               const SizedBox(
                 height: 16,
               ),
+
               Text(
                 _errorMessage!,
                 textAlign:
                     TextAlign.center,
               ),
+
               const SizedBox(
                 height: 16,
               ),
+
               FilledButton(
                 onPressed:
                     _loadRecommendations,
@@ -283,20 +297,25 @@ class _RecommendationsScreenState
           physics:
               const AlwaysScrollableScrollPhysics(),
           padding:
-              const EdgeInsets.all(24),
+              const EdgeInsets.all(
+            24,
+          ),
           children: const [
             SizedBox(
               height: 130,
             ),
+
             Icon(
               Icons.auto_awesome_outlined,
               size: 60,
               color:
                   AppTheme.textSecondaryColor,
             ),
+
             SizedBox(
               height: 16,
             ),
+
             Text(
               'No recommendations yet.',
               textAlign:
@@ -307,11 +326,13 @@ class _RecommendationsScreenState
                     FontWeight.w600,
               ),
             ),
+
             SizedBox(
               height: 6,
             ),
+
             Text(
-              'Recommendations will appear as you use Barber Me.',
+              'Recommendations will appear based on your completed appointments.',
               textAlign:
                   TextAlign.center,
               style: TextStyle(
@@ -361,7 +382,7 @@ class _RecommendationsScreenState
                     recommendation
                         .recommendationId,
             onBook: () {
-              _acceptRecommendation(
+              _bookRecommendation(
                 recommendation,
               );
             },
@@ -380,6 +401,7 @@ class _RecommendationsScreenState
 class _RecommendationCard
     extends StatelessWidget {
   final Recommendation recommendation;
+
   final bool isUpdating;
 
   final VoidCallback onBook;
@@ -399,7 +421,9 @@ class _RecommendationCard
     return Card(
       child: Padding(
         padding:
-            const EdgeInsets.all(18),
+            const EdgeInsets.all(
+          18,
+        ),
         child: Column(
           crossAxisAlignment:
               CrossAxisAlignment.start,
@@ -450,16 +474,19 @@ class _RecommendationCard
                               FontWeight.bold,
                         ),
                       ),
+
                       const SizedBox(
                         height: 4,
                       ),
+
                       Text(
                         recommendation
                             .barberName,
                         style:
                             const TextStyle(
-                          color: AppTheme
-                              .textSecondaryColor,
+                          color:
+                              AppTheme
+                                  .textSecondaryColor,
                         ),
                       ),
                     ],
@@ -482,6 +509,7 @@ class _RecommendationCard
                         '${recommendation.durationMinutes} min',
                   ),
                 ),
+
                 Expanded(
                   child: _InfoItem(
                     icon:
@@ -498,7 +526,8 @@ class _RecommendationCard
             ),
 
             Container(
-              width: double.infinity,
+              width:
+                  double.infinity,
               padding:
                   const EdgeInsets.all(
                 14,
@@ -525,9 +554,11 @@ class _RecommendationCard
                     color:
                         AppTheme.accentColor,
                   ),
+
                   const SizedBox(
                     width: 10,
                   ),
+
                   Expanded(
                     child: Text(
                       recommendation
@@ -541,51 +572,6 @@ class _RecommendationCard
                 ],
               ),
             ),
-
-            if (recommendation.wasAccepted !=
-                null) ...[
-              const SizedBox(
-                height: 14,
-              ),
-              Row(
-                children: [
-                  Icon(
-                    recommendation.wasAccepted ==
-                            true
-                        ? Icons
-                            .check_circle_outline
-                        : Icons
-                            .do_not_disturb_alt_outlined,
-                    size: 18,
-                    color:
-                        recommendation.wasAccepted ==
-                                true
-                            ? Colors.green
-                            : AppTheme
-                                .textSecondaryColor,
-                  ),
-                  const SizedBox(
-                    width: 7,
-                  ),
-                  Text(
-                    recommendation.wasAccepted ==
-                            true
-                        ? 'Interested'
-                        : 'Not interested',
-                    style: TextStyle(
-                      fontWeight:
-                          FontWeight.w500,
-                      color:
-                          recommendation.wasAccepted ==
-                                  true
-                              ? Colors.green
-                              : AppTheme
-                                  .textSecondaryColor,
-                    ),
-                  ),
-                ],
-              ),
-            ],
 
             const SizedBox(
               height: 18,
@@ -625,16 +611,21 @@ class _RecommendationCard
             ),
 
             SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
+              width:
+                  double.infinity,
+              child:
+                  OutlinedButton.icon(
                 onPressed:
                     isUpdating
                         ? null
                         : onReject,
-                icon: const Icon(
-                  Icons.thumb_down_alt_outlined,
+                icon:
+                    const Icon(
+                  Icons
+                      .thumb_down_alt_outlined,
                 ),
-                label: const Text(
+                label:
+                    const Text(
                   'Not interested',
                 ),
               ),
@@ -668,9 +659,11 @@ class _InfoItem
           color:
               AppTheme.accentColor,
         ),
+
         const SizedBox(
           width: 7,
         ),
+
         Flexible(
           child: Text(
             text,

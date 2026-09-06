@@ -161,5 +161,29 @@ namespace BarberMe.Services.Services
             return await _context.Notifications
                 .CountAsync(x => x.UserId == userId && !x.IsRead);
         }
+
+        public async Task MarkAllAsRead()
+        {
+            var userId = _currentUserService.UserId;
+
+            var notifications = await _context.Notifications
+                .Where(x =>
+                    x.UserId == userId &&
+                    !x.IsRead)
+                .ToListAsync();
+
+            if (notifications.Count == 0)
+                return;
+
+            var readAt = DateTime.UtcNow;
+
+            foreach (var notification in notifications)
+            {
+                notification.IsRead = true;
+                notification.ReadAt = readAt;
+            }
+
+            await _context.SaveChangesAsync();
+        }
     }
 }

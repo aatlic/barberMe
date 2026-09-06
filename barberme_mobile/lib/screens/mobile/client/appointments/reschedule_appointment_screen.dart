@@ -245,37 +245,14 @@ class _RescheduleAppointmentScreenState
 
       if (!mounted) return;
 
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) {
-          return AlertDialog(
-            icon: const Icon(
-              Icons.check_circle_outline,
-              size: 48,
-            ),
-            title: const Text(
-              'Appointment rescheduled',
-            ),
-            content: const Text(
-              'Your appointment time has been updated successfully.',
-            ),
-            actions: [
-              FilledButton(
-                onPressed: () {
-                  Navigator.of(
-                    dialogContext,
-                  ).pop();
-                },
-                child: const Text(
-                  'OK',
-                ),
-              ),
-            ],
-          );
-        },
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Appointment rescheduled successfully.',
+          ),
+        ),
       );
-
+      
       if (!mounted) return;
 
       Navigator.of(context).pop(true);

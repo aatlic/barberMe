@@ -58,5 +58,13 @@ namespace BarberMe.API.Controllers
             var result = await _service.GetUnreadCount();
             return Ok(result);
         }
+
+        [HttpPut("read-all")]
+        public async Task<IActionResult> MarkAllAsRead()
+        {
+            await _service.MarkAllAsRead();
+
+            return Ok();
+        }
     }
 }

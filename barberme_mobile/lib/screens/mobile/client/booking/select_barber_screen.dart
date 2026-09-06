@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../models/user.dart';
 import '../../../../services/user_service.dart';
-
+import '../../../../core/config/api_config.dart';
 import 'select_service_screen.dart';
 
 class SelectBarberScreen extends StatefulWidget {
@@ -156,10 +156,33 @@ class _BarberCard extends StatelessWidget {
     required this.onTap,
   });
 
+  String? _getProfileImageUrl() {
+    final path = barber.profileImagePath;
+
+    if (path == null || path.trim().isEmpty) {
+      return null;
+    }
+
+    final normalizedPath = path.replaceAll('\\', '/');
+
+    if (normalizedPath.startsWith('http://') ||
+        normalizedPath.startsWith('https://')) {
+      return normalizedPath;
+    }
+
+    final cleanPath = normalizedPath.startsWith('/')
+        ? normalizedPath
+        : '/$normalizedPath';
+
+    return '${ApiConfig.baseUrl}$cleanPath';
+  }
+
   @override
   Widget build(BuildContext context) {
     final fullName =
         '${barber.firstName} ${barber.lastName}'.trim();
+
+    final profileImageUrl = _getProfileImageUrl();
 
     return Card(
       child: InkWell(
@@ -175,11 +198,16 @@ class _BarberCard extends StatelessWidget {
                     AppTheme.accentColor.withValues(
                   alpha: 0.12,
                 ),
-                child: const Icon(
-                  Icons.person_outline,
-                  color: AppTheme.accentColor,
-                  size: 30,
-                ),
+                backgroundImage: profileImageUrl != null
+                    ? NetworkImage(profileImageUrl)
+                    : null,
+                child: profileImageUrl == null
+                    ? const Icon(
+                        Icons.person_outline,
+                        color: AppTheme.accentColor,
+                        size: 30,
+                      )
+                    : null,
               ),
 
               const SizedBox(width: 16),

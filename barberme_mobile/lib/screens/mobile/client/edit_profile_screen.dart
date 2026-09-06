@@ -310,7 +310,7 @@ class _EditProfileScreenState
                         AppTheme.accentColor,
                   ),
                   title: const Text(
-                    'Email notifications',
+                    'Newsletter',
                   ),
                   subtitle: const Text(
                     'Receive news and updates by email',

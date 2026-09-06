@@ -165,6 +165,63 @@ class _NotificationsScreenState
     }
   }
 
+  Future<void> _markAllAsRead() async {
+    final hasUnread =
+        _notifications.any((item) => !item.isRead);
+
+    if (!hasUnread) {
+      return;
+    }
+
+    try {
+      await _notificationService.markAllAsRead();
+
+      if (!mounted) return;
+
+      setState(() {
+        _notifications = _notifications
+            .map(
+              (item) => AppNotification(
+                id: item.id,
+                userId: item.userId,
+                notificationTypeId:
+                    item.notificationTypeId,
+                notificationTypeName:
+                    item.notificationTypeName,
+                title: item.title,
+                text: item.text,
+                isRead: true,
+                createdAt: item.createdAt,
+                readAt:
+                    item.readAt ?? DateTime.now(),
+              ),
+            )
+            .toList();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'All notifications marked as read.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst(
+              'Exception: ',
+              '',
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
   String _formatDateTime(
     DateTime value,
   ) {
@@ -261,6 +318,18 @@ class _NotificationsScreenState
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          if (_notifications.any(
+            (item) => !item.isRead,
+          ))
+            IconButton(
+              tooltip: 'Mark all as read',
+              onPressed: _markAllAsRead,
+              icon: const Icon(
+                Icons.done_all,
+              ),
+            ),
+        ],
       ),
       body: _buildBody(),
     );

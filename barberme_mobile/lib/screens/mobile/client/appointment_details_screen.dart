@@ -215,14 +215,8 @@ class _AppointmentDetailsScreenState
                     ),
                   ),
                   const SizedBox(height: 5),
-                  Text(
-                    appointment.status,
-                    style: const TextStyle(
-                      color:
-                          AppTheme.accentColor,
-                      fontWeight:
-                          FontWeight.w600,
-                    ),
+                  _StatusChip(
+                    status: appointment.status,
                   ),
                 ],
               ),
@@ -466,6 +460,82 @@ class _DetailRow extends StatelessWidget {
           const SizedBox(height: 14),
         ],
       ],
+    );
+  }
+}
+
+class _StatusChip extends StatelessWidget {
+  final String status;
+
+  const _StatusChip({
+    required this.status,
+  });
+
+  Color _backgroundColor() {
+    switch (status.toLowerCase()) {
+      case 'confirmed':
+        return Colors.green.withValues(
+          alpha: 0.12,
+        );
+
+      case 'cancelled':
+      case 'no show':
+      case 'noshow':
+        return Colors.red.withValues(
+          alpha: 0.12,
+        );
+
+      case 'completed':
+        return Colors.blueGrey.withValues(
+          alpha: 0.12,
+        );
+
+      default:
+        return AppTheme.accentColor.withValues(
+          alpha: 0.12,
+        );
+    }
+  }
+
+  Color _foregroundColor() {
+    switch (status.toLowerCase()) {
+      case 'confirmed':
+        return Colors.green.shade700;
+
+      case 'cancelled':
+      case 'no show':
+      case 'noshow':
+        return Colors.red.shade700;
+
+      case 'completed':
+        return Colors.blueGrey.shade700;
+
+      default:
+        return AppTheme.accentColor;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color: _backgroundColor(),
+        borderRadius: BorderRadius.circular(
+          20,
+        ),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: _foregroundColor(),
+        ),
+      ),
     );
   }
 }
