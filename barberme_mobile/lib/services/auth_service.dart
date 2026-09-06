@@ -4,11 +4,55 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/login_response.dart';
-
+import '../models/user.dart';
 import '../core/config/api_config.dart';
 
 class AuthService {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
+
+  Future<User> register({
+    required String firstName,
+    required String lastName,
+    required String username,
+    required String email,
+    required String phoneNumber,
+    required String password,
+    required String confirmPassword,
+  }) async {
+    final response = await http.post(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/api/Users/register',
+      ),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'firstName': firstName.trim(),
+        'lastName': lastName.trim(),
+        'username': username.trim(),
+        'email': email.trim(),
+        'phoneNumber': phoneNumber.trim(),
+        'password': password,
+        'confirmPassword': confirmPassword,
+      }),
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      final data =
+          jsonDecode(response.body)
+              as Map<String, dynamic>;
+
+      return User.fromJson(data);
+    }
+
+    throw Exception(
+      _getErrorMessage(
+        response.body,
+        'Registration failed.',
+      ),
+    );
+  }
 
   Future<LoginResponse> login({
     required String username,
@@ -72,6 +116,78 @@ class AuthService {
 
     await _storage.delete(
       key: 'jwt_token',
+    );
+  }
+
+  String _getErrorMessage(
+    String body,
+    String fallback,
+  ) {
+    try {
+      final data =
+          jsonDecode(body)
+              as Map<String, dynamic>;
+
+      if (data['message'] != null) {
+        return data['message'].toString();
+      }
+
+      if (data['errors'] != null) {
+        final errors = data['errors'];
+
+        if (errors is Map<String, dynamic>) {
+          final messages = <String>[];
+
+          for (final value in errors.values) {
+            if (value is List) {
+              messages.addAll(
+                value.map(
+                  (item) => item.toString(),
+                ),
+              );
+            }
+          }
+
+          if (messages.isNotEmpty) {
+            return messages.first;
+          }
+        }
+      }
+    } catch (_) {}
+
+    return fallback;
+  }
+
+  Future<String> forgotPassword({
+    required String email,
+  }) async {
+    final response = await http.post(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/api/Users/forgot-password',
+      ),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'email': email.trim(),
+      }),
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      final data =
+          jsonDecode(response.body)
+              as Map<String, dynamic>;
+
+      return data['message']?.toString() ??
+          'If an account with that email exists, instructions have been sent.';
+    }
+
+    throw Exception(
+      _getErrorMessage(
+        response.body,
+        'Failed to reset password.',
+      ),
     );
   }
 }

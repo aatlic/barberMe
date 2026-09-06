@@ -6,9 +6,10 @@ import '../../../models/appointment.dart';
 import '../../../services/appointment_service.dart';
 import '../../../services/payment_service.dart';
 import '../../../services/review_service.dart';
-import 'appointments/reschedule_appointment_screen.dart';
-import 'appointment_details_screen.dart';
 import '../../../services/recommendation_service.dart';
+
+import 'appointment_details_screen.dart';
+import 'appointments/reschedule_appointment_screen.dart';
 
 class ClientAppointmentsScreen extends StatefulWidget {
   final int? recommendationIdToRate;
@@ -32,10 +33,10 @@ class _ClientAppointmentsScreenState
       PaymentService();
 
   final ReviewService _reviewService =
-    ReviewService();
+      ReviewService();
 
   final RecommendationService _recommendationService =
-    RecommendationService();
+      RecommendationService();
 
   bool _recommendationFeedbackShown = false;
 
@@ -44,35 +45,34 @@ class _ClientAppointmentsScreenState
   int _selectedTab = 0;
 
   final TextEditingController _searchController =
-    TextEditingController();
+      TextEditingController();
 
   String _searchText = '';
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
 
   // UPCOMING
   List<Appointment> _upcomingAppointments = [];
   int _upcomingPage = 1;
   int _upcomingTotalCount = 0;
+
   bool _isLoadingUpcoming = true;
   bool _isLoadingMoreUpcoming = false;
+
   String? _upcomingErrorMessage;
 
   // HISTORY
   List<Appointment> _historyAppointments = [];
   int _historyPage = 1;
   int _historyTotalCount = 0;
+
   bool _isLoadingHistory = false;
   bool _isLoadingMoreHistory = false;
+
   String? _historyErrorMessage;
 
   // PAYMENT
   int? _payingAppointmentId;
 
+  // REMINDER
   int? _updatingReminderAppointmentId;
 
   @override
@@ -90,6 +90,13 @@ class _ClientAppointmentsScreenState
         },
       );
     }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+
+    super.dispose();
   }
 
   Future<void> _showRecommendationFeedback() async {
@@ -127,7 +134,8 @@ class _ClientAppointmentsScreenState
               ),
               content: SingleChildScrollView(
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisSize:
+                      MainAxisSize.min,
                   crossAxisAlignment:
                       CrossAxisAlignment.start,
                   children: [
@@ -135,7 +143,9 @@ class _ClientAppointmentsScreenState
                       'How useful was this recommendation for choosing your appointment?',
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(
+                      height: 20,
+                    ),
 
                     Row(
                       mainAxisAlignment:
@@ -143,7 +153,8 @@ class _ClientAppointmentsScreenState
                       children: List.generate(
                         5,
                         (index) {
-                          final rating = index + 1;
+                          final rating =
+                              index + 1;
 
                           return IconButton(
                             onPressed: () {
@@ -158,15 +169,17 @@ class _ClientAppointmentsScreenState
                                   ? Icons.star
                                   : Icons.star_border,
                               size: 34,
-                              color: AppTheme
-                                  .accentColor,
+                              color:
+                                  AppTheme.accentColor,
                             ),
                           );
                         },
                       ),
                     ),
 
-                    const SizedBox(height: 14),
+                    const SizedBox(
+                      height: 14,
+                    ),
 
                     TextField(
                       maxLength: 500,
@@ -281,18 +294,19 @@ class _ClientAppointmentsScreenState
           : _upcomingPage + 1;
 
       final result =
-        await _appointmentService.getAppointments(
-          listType: 'Upcoming',
-          fts: _searchText,
-          page: page,
-          pageSize: _pageSize,
-        );
+          await _appointmentService.getAppointments(
+        listType: 'Upcoming',
+        fts: _searchText,
+        page: page,
+        pageSize: _pageSize,
+      );
 
       if (!mounted) return;
 
       setState(() {
         if (refresh) {
-          _upcomingAppointments = result.items;
+          _upcomingAppointments =
+              result.items;
         } else {
           _upcomingAppointments.addAll(
             result.items,
@@ -300,10 +314,12 @@ class _ClientAppointmentsScreenState
         }
 
         _upcomingPage = result.page;
-        _upcomingTotalCount = result.totalCount;
+        _upcomingTotalCount =
+            result.totalCount;
 
         _isLoadingUpcoming = false;
         _isLoadingMoreUpcoming = false;
+
         _upcomingErrorMessage = null;
       });
     } catch (e) {
@@ -347,18 +363,19 @@ class _ClientAppointmentsScreenState
           : _historyPage + 1;
 
       final result =
-        await _appointmentService.getAppointments(
-          listType: 'History',
-          fts: _searchText,
-          page: page,
-          pageSize: _pageSize,
-        );
+          await _appointmentService.getAppointments(
+        listType: 'History',
+        fts: _searchText,
+        page: page,
+        pageSize: _pageSize,
+      );
 
       if (!mounted) return;
 
       setState(() {
         if (refresh) {
-          _historyAppointments = result.items;
+          _historyAppointments =
+              result.items;
         } else {
           _historyAppointments.addAll(
             result.items,
@@ -366,10 +383,12 @@ class _ClientAppointmentsScreenState
         }
 
         _historyPage = result.page;
-        _historyTotalCount = result.totalCount;
+        _historyTotalCount =
+            result.totalCount;
 
         _isLoadingHistory = false;
         _isLoadingMoreHistory = false;
+
         _historyErrorMessage = null;
       });
     } catch (e) {
@@ -530,12 +549,14 @@ class _ClientAppointmentsScreenState
     }
 
     setState(() {
-      _updatingReminderAppointmentId = appointment.id;
+      _updatingReminderAppointmentId =
+          appointment.id;
     });
 
     try {
       await _appointmentService.updateReminder(
-        appointmentId: appointment.id,
+        appointmentId:
+            appointment.id,
         reminderEnabled: enabled,
       );
 
@@ -610,24 +631,33 @@ class _ClientAppointmentsScreenState
             'Cancel appointment?',
           ),
           content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize:
+                MainAxisSize.min,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               const Text(
                 'Please enter a reason for cancelling this appointment.',
               ),
-              const SizedBox(height: 16),
+
+              const SizedBox(
+                height: 16,
+              ),
 
               TextField(
                 maxLength: 500,
                 maxLines: 3,
                 autofocus: true,
                 onChanged: (value) {
-                  cancellationReason = value;
+                  cancellationReason =
+                      value;
                 },
-                decoration: const InputDecoration(
-                  labelText: 'Cancellation reason',
-                  border: OutlineInputBorder(),
+                decoration:
+                    const InputDecoration(
+                  labelText:
+                      'Cancellation reason',
+                  border:
+                      OutlineInputBorder(),
                 ),
               ),
             ],
@@ -635,7 +665,9 @@ class _ClientAppointmentsScreenState
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(dialogContext).pop();
+                Navigator.of(
+                  dialogContext,
+                ).pop();
               },
               child: const Text(
                 'Keep appointment',
@@ -651,7 +683,9 @@ class _ClientAppointmentsScreenState
                   return;
                 }
 
-                Navigator.of(dialogContext).pop(
+                Navigator.of(
+                  dialogContext,
+                ).pop(
                   trimmedReason,
                 );
               },
@@ -664,14 +698,18 @@ class _ClientAppointmentsScreenState
       },
     );
 
-    if (reason == null || reason.isEmpty) {
+    if (reason == null ||
+        reason.isEmpty) {
       return;
     }
 
     try {
-      await _appointmentService.cancelAppointment(
-        appointmentId: appointment.id,
-        cancellationReason: reason,
+      await _appointmentService
+          .cancelAppointment(
+        appointmentId:
+            appointment.id,
+        cancellationReason:
+            reason,
       );
 
       if (!mounted) return;
@@ -711,7 +749,8 @@ class _ClientAppointmentsScreenState
     int selectedRating = 0;
     String comment = '';
 
-    final submitted = await showDialog<bool>(
+    final submitted =
+        await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
@@ -728,82 +767,112 @@ class _ClientAppointmentsScreenState
               title: const Text(
                 'Leave a review',
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    appointment.serviceName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize:
+                      MainAxisSize.min,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      appointment.serviceName,
+                      style:
+                          const TextStyle(
+                        fontWeight:
+                            FontWeight.w600,
+                      ),
                     ),
-                  ),
 
-                  const SizedBox(height: 6),
-
-                  Text(
-                    appointment.barberFullName,
-                    style: const TextStyle(
-                      color:
-                          AppTheme.textSecondaryColor,
+                    const SizedBox(
+                      height: 6,
                     ),
-                  ),
 
-                  const SizedBox(height: 20),
-
-                  const Text(
-                    'Rating',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
+                    Text(
+                      appointment
+                          .barberFullName,
+                      style:
+                          const TextStyle(
+                        color: AppTheme
+                            .textSecondaryColor,
+                      ),
                     ),
-                  ),
 
-                  const SizedBox(height: 8),
+                    const SizedBox(
+                      height: 20,
+                    ),
 
-                  Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.center,
-                    children: List.generate(
-                      5,
-                      (index) {
-                        final rating = index + 1;
+                    const Text(
+                      'Rating',
+                      style:
+                          TextStyle(
+                        fontWeight:
+                            FontWeight.w600,
+                      ),
+                    ),
 
-                        return IconButton(
-                          onPressed: () {
-                            setDialogState(() {
-                              selectedRating = rating;
-                            });
-                          },
-                          icon: Icon(
-                            rating <= selectedRating
-                                ? Icons.star
-                                : Icons.star_border,
-                            color:
-                                AppTheme.accentColor,
-                            size: 34,
-                          ),
-                        );
+                    const SizedBox(
+                      height: 8,
+                    ),
+
+                    Row(
+                      mainAxisAlignment:
+                          MainAxisAlignment.center,
+                      children:
+                          List.generate(
+                        5,
+                        (index) {
+                          final rating =
+                              index + 1;
+
+                          return IconButton(
+                            onPressed:
+                                () {
+                              setDialogState(
+                                () {
+                                  selectedRating =
+                                      rating;
+                                },
+                              );
+                            },
+                            icon: Icon(
+                              rating <=
+                                      selectedRating
+                                  ? Icons.star
+                                  : Icons
+                                      .star_border,
+                              color:
+                                  AppTheme
+                                      .accentColor,
+                              size: 34,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 14,
+                    ),
+
+                    TextField(
+                      maxLength: 1000,
+                      maxLines: 4,
+                      onChanged:
+                          (value) {
+                        comment = value;
                       },
+                      decoration:
+                          const InputDecoration(
+                        labelText:
+                            'Comment (optional)',
+                        hintText:
+                            'Tell us about your experience',
+                        border:
+                            OutlineInputBorder(),
+                      ),
                     ),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  TextField(
-                    maxLength: 1000,
-                    maxLines: 4,
-                    onChanged: (value) {
-                      comment = value;
-                    },
-                    decoration: const InputDecoration(
-                      labelText: 'Comment (optional)',
-                      hintText:
-                          'Tell us about your experience',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -812,18 +881,23 @@ class _ClientAppointmentsScreenState
                       dialogContext,
                     ).pop(false);
                   },
-                  child: const Text('Cancel'),
+                  child:
+                      const Text(
+                    'Cancel',
+                  ),
                 ),
 
                 FilledButton(
-                  onPressed: selectedRating == 0
-                      ? null
-                      : () {
-                          Navigator.of(
-                            dialogContext,
-                          ).pop(true);
-                        },
-                  child: const Text(
+                  onPressed:
+                      selectedRating == 0
+                          ? null
+                          : () {
+                              Navigator.of(
+                                dialogContext,
+                              ).pop(true);
+                            },
+                  child:
+                      const Text(
                     'Submit review',
                   ),
                 ),
@@ -840,7 +914,8 @@ class _ClientAppointmentsScreenState
 
     try {
       await _reviewService.createReview(
-        appointmentId: appointment.id,
+        appointmentId:
+            appointment.id,
         rating: selectedRating,
         comment: comment,
       );
@@ -940,6 +1015,21 @@ class _ClientAppointmentsScreenState
         !appointment.hasReview;
   }
 
+  bool _canUpdateReminder(
+    Appointment appointment,
+  ) {
+    final status =
+        appointment.status.toLowerCase();
+
+    if (!appointment.startDateTime
+        .isAfter(DateTime.now())) {
+      return false;
+    }
+
+    return status == 'pending' ||
+        status == 'confirmed';
+  }
+
   String _formatDateTime(
     DateTime value,
   ) {
@@ -980,7 +1070,8 @@ class _ClientAppointmentsScreenState
         title: const Text(
           'Appointments',
           style: TextStyle(
-            fontWeight: FontWeight.bold,
+            fontWeight:
+                FontWeight.bold,
           ),
         ),
       ),
@@ -1002,44 +1093,61 @@ class _ClientAppointmentsScreenState
 
   Widget _buildSearch() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
+      padding:
+          const EdgeInsets.fromLTRB(
         20,
         16,
         20,
         0,
       ),
       child: TextField(
-        controller: _searchController,
-        textInputAction: TextInputAction.search,
-        decoration: InputDecoration(
-          hintText: 'Search by barber or service',
-          prefixIcon: const Icon(
+        controller:
+            _searchController,
+        textInputAction:
+            TextInputAction.search,
+        decoration:
+            InputDecoration(
+          hintText:
+              'Search by barber or service',
+          prefixIcon:
+              const Icon(
             Icons.search,
           ),
-          suffixIcon: _searchText.isNotEmpty
-              ? IconButton(
-                  tooltip: 'Clear search',
-                  onPressed: () {
-                    _searchController.clear();
+          suffixIcon:
+              _searchText.isNotEmpty
+                  ? IconButton(
+                      tooltip:
+                          'Clear search',
+                      onPressed: () {
+                        _searchController
+                            .clear();
 
-                    setState(() {
-                      _searchText = '';
-                    });
+                        setState(() {
+                          _searchText =
+                              '';
+                        });
 
-                    _refreshCurrentTab();
-                  },
-                  icon: const Icon(
-                    Icons.close,
-                  ),
-                )
-              : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+                        _refreshCurrentTab();
+                      },
+                      icon:
+                          const Icon(
+                        Icons.close,
+                      ),
+                    )
+                  : null,
+          border:
+              OutlineInputBorder(
+            borderRadius:
+                BorderRadius.circular(
+              14,
+            ),
           ),
         ),
-        onSubmitted: (value) {
+        onSubmitted:
+            (value) {
           setState(() {
-            _searchText = value.trim();
+            _searchText =
+                value.trim();
           });
 
           _refreshCurrentTab();
@@ -1050,7 +1158,8 @@ class _ClientAppointmentsScreenState
 
   Widget _buildTabs() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
+      padding:
+          const EdgeInsets.fromLTRB(
         20,
         16,
         20,
@@ -1058,17 +1167,20 @@ class _ClientAppointmentsScreenState
       ),
       child: SizedBox(
         width: double.infinity,
-        child: SegmentedButton<int>(
+        child:
+            SegmentedButton<int>(
           segments: const [
             ButtonSegment<int>(
               value: 0,
               icon: Icon(
-                Icons.event_available_outlined,
+                Icons
+                    .event_available_outlined,
               ),
               label: Text(
                 'Upcoming',
               ),
             ),
+
             ButtonSegment<int>(
               value: 1,
               icon: Icon(
@@ -1082,9 +1194,8 @@ class _ClientAppointmentsScreenState
           selected: {
             _selectedTab,
           },
-          onSelectionChanged: (
-            selection,
-          ) {
+          onSelectionChanged:
+              (selection) {
             _changeTab(
               selection.first,
             );
@@ -1097,12 +1208,15 @@ class _ClientAppointmentsScreenState
   Widget _buildUpcoming() {
     if (_isLoadingUpcoming) {
       return const Center(
-        child: CircularProgressIndicator(),
+        child:
+            CircularProgressIndicator(),
       );
     }
 
-    if (_upcomingErrorMessage != null &&
-        _upcomingAppointments.isEmpty) {
+    if (_upcomingErrorMessage !=
+            null &&
+        _upcomingAppointments
+            .isEmpty) {
       return _buildError(
         message:
             _upcomingErrorMessage!,
@@ -1139,12 +1253,15 @@ class _ClientAppointmentsScreenState
   Widget _buildHistory() {
     if (_isLoadingHistory) {
       return const Center(
-        child: CircularProgressIndicator(),
+        child:
+            CircularProgressIndicator(),
       );
     }
 
-    if (_historyErrorMessage != null &&
-        _historyAppointments.isEmpty) {
+    if (_historyErrorMessage !=
+            null &&
+        _historyAppointments
+            .isEmpty) {
       return _buildError(
         message:
             _historyErrorMessage!,
@@ -1212,8 +1329,9 @@ class _ClientAppointmentsScreenState
             Icon(
               emptyIcon,
               size: 56,
-              color: AppTheme
-                  .textSecondaryColor,
+              color:
+                  AppTheme
+                      .textSecondaryColor,
             ),
 
             const SizedBox(
@@ -1242,8 +1360,9 @@ class _ClientAppointmentsScreenState
                   TextAlign.center,
               style:
                   const TextStyle(
-                color: AppTheme
-                    .textSecondaryColor,
+                color:
+                    AppTheme
+                        .textSecondaryColor,
               ),
             ),
           ],
@@ -1254,7 +1373,8 @@ class _ClientAppointmentsScreenState
     return RefreshIndicator(
       onRefresh:
           _refreshCurrentTab,
-      child: ListView.separated(
+      child:
+          ListView.separated(
         physics:
             const AlwaysScrollableScrollPhysics(),
         padding:
@@ -1267,17 +1387,13 @@ class _ClientAppointmentsScreenState
         itemCount:
             appointments.length +
                 (hasMore ? 1 : 0),
-        separatorBuilder: (
-          _,
-          index,
-        ) =>
-            const SizedBox(
+        separatorBuilder:
+            (_, index) =>
+                const SizedBox(
           height: 14,
         ),
-        itemBuilder: (
-          context,
-          index,
-        ) {
+        itemBuilder:
+            (context, index) {
           if (index ==
               appointments.length) {
             return Padding(
@@ -1337,41 +1453,49 @@ class _ClientAppointmentsScreenState
                 _canReview(
               appointment,
             ),
+            canUpdateReminder:
+                _canUpdateReminder(
+              appointment,
+            ),
             isPaying:
                 _payingAppointmentId ==
                     appointment.id,
             isUpdatingReminder:
-              _updatingReminderAppointmentId ==
-                  appointment.id,
-
+                _updatingReminderAppointmentId ==
+                    appointment.id,
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => AppointmentDetailsScreen(
-                    appointmentId: appointment.id,
+                  builder: (_) =>
+                      AppointmentDetailsScreen(
+                    appointmentId:
+                        appointment.id,
                   ),
                 ),
               );
             },
-
-            onReminderChanged: (value) {
+            onReminderChanged:
+                (value) {
               _updateReminder(
                 appointment,
                 value,
               );
-            },      
+            },
             onPay: () {
               _payAppointment(
                 appointment,
               );
             },
-            onReschedule: () async {
+            onReschedule:
+                () async {
               final changed =
-                  await Navigator.of(context).push<bool>(
+                  await Navigator.of(context)
+                      .push<bool>(
                 MaterialPageRoute(
                   builder: (_) =>
                       RescheduleAppointmentScreen(
-                    appointment: appointment,
+                    appointment:
+                        appointment,
                   ),
                 ),
               );
@@ -1388,7 +1512,7 @@ class _ClientAppointmentsScreenState
               );
             },
             onReview: () {
-               _leaveReview(
+              _leaveReview(
                 appointment,
               );
             },
@@ -1432,7 +1556,8 @@ class _ClientAppointmentsScreenState
             ),
 
             FilledButton(
-              onPressed: onRetry,
+              onPressed:
+                  onRetry,
               child:
                   const Text(
                 'Try again',
@@ -1445,7 +1570,8 @@ class _ClientAppointmentsScreenState
   }
 }
 
-class _AppointmentCard extends StatelessWidget {
+class _AppointmentCard
+    extends StatelessWidget {
   final Appointment appointment;
   final String formattedDate;
 
@@ -1454,6 +1580,8 @@ class _AppointmentCard extends StatelessWidget {
   final bool canReschedule;
   final bool canCancel;
   final bool canReview;
+  final bool canUpdateReminder;
+
   final bool isPaying;
   final bool isUpdatingReminder;
 
@@ -1461,7 +1589,10 @@ class _AppointmentCard extends StatelessWidget {
   final VoidCallback onReschedule;
   final VoidCallback onCancel;
   final VoidCallback onReview;
-  final ValueChanged<bool> onReminderChanged;
+
+  final ValueChanged<bool>
+      onReminderChanged;
+
   final VoidCallback onTap;
 
   const _AppointmentCard({
@@ -1472,6 +1603,7 @@ class _AppointmentCard extends StatelessWidget {
     required this.canReschedule,
     required this.canCancel,
     required this.canReview,
+    required this.canUpdateReminder,
     required this.isPaying,
     required this.isUpdatingReminder,
     required this.onPay,
@@ -1488,7 +1620,10 @@ class _AppointmentCard extends StatelessWidget {
   ) {
     return Card(
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius:
+            BorderRadius.circular(
+          16,
+        ),
         onTap: onTap,
         child: Padding(
           padding:
@@ -1569,7 +1704,8 @@ class _AppointmentCard extends StatelessWidget {
                     appointment.isPaid,
               ),
 
-              if (!isHistory) ...[
+              if (!isHistory &&
+                  canUpdateReminder) ...[
                 const SizedBox(
                   height: 10,
                 ),
@@ -1577,9 +1713,11 @@ class _AppointmentCard extends StatelessWidget {
                 Row(
                   children: [
                     const Icon(
-                      Icons.notifications_active_outlined,
+                      Icons
+                          .notifications_active_outlined,
                       size: 20,
-                      color: AppTheme.accentColor,
+                      color:
+                          AppTheme.accentColor,
                     ),
 
                     const SizedBox(
@@ -1589,9 +1727,11 @@ class _AppointmentCard extends StatelessWidget {
                     const Expanded(
                       child: Text(
                         'Appointment reminder',
-                        style: TextStyle(
+                        style:
+                            TextStyle(
                           fontSize: 15,
-                          fontWeight: FontWeight.w500,
+                          fontWeight:
+                              FontWeight.w500,
                         ),
                       ),
                     ),
@@ -1600,14 +1740,18 @@ class _AppointmentCard extends StatelessWidget {
                       const SizedBox(
                         width: 24,
                         height: 24,
-                        child: CircularProgressIndicator(
+                        child:
+                            CircularProgressIndicator(
                           strokeWidth: 2,
                         ),
                       )
                     else
                       Switch(
-                        value: appointment.reminderEnabled,
-                        onChanged: onReminderChanged,
+                        value:
+                            appointment
+                                .reminderEnabled,
+                        onChanged:
+                            onReminderChanged,
                       ),
                   ],
                 ),
@@ -1629,8 +1773,9 @@ class _AppointmentCard extends StatelessWidget {
                   '${appointment.cancellationReason}',
                   style:
                       const TextStyle(
-                    color: AppTheme
-                        .textSecondaryColor,
+                    color:
+                        AppTheme
+                            .textSecondaryColor,
                   ),
                 ),
               ],
@@ -1645,8 +1790,10 @@ class _AppointmentCard extends StatelessWidget {
 
                 if (canPay)
                   SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
+                    width:
+                        double.infinity,
+                    child:
+                        FilledButton.icon(
                       onPressed:
                           isPaying
                               ? null
@@ -1657,11 +1804,13 @@ class _AppointmentCard extends StatelessWidget {
                               height: 18,
                               child:
                                   CircularProgressIndicator(
-                                strokeWidth: 2,
+                                strokeWidth:
+                                    2,
                               ),
                             )
                           : const Icon(
-                              Icons.credit_card,
+                              Icons
+                                  .credit_card,
                             ),
                       label: Text(
                         isPaying
@@ -1672,12 +1821,14 @@ class _AppointmentCard extends StatelessWidget {
                   ),
 
                 if (canPay &&
-                    (canReschedule || canCancel))
+                    (canReschedule ||
+                        canCancel))
                   const SizedBox(
                     height: 10,
                   ),
 
-                if (canReschedule || canCancel)
+                if (canReschedule ||
+                    canCancel)
                   Row(
                     children: [
                       if (canReschedule)
@@ -1686,11 +1837,13 @@ class _AppointmentCard extends StatelessWidget {
                               OutlinedButton.icon(
                             onPressed:
                                 onReschedule,
-                            icon: const Icon(
+                            icon:
+                                const Icon(
                               Icons
                                   .edit_calendar_outlined,
                             ),
-                            label: const Text(
+                            label:
+                                const Text(
                               'Reschedule',
                             ),
                           ),
@@ -1708,10 +1861,12 @@ class _AppointmentCard extends StatelessWidget {
                               OutlinedButton.icon(
                             onPressed:
                                 onCancel,
-                            icon: const Icon(
+                            icon:
+                                const Icon(
                               Icons.close,
                             ),
-                            label: const Text(
+                            label:
+                                const Text(
                               'Cancel',
                             ),
                           ),
@@ -1778,7 +1933,7 @@ class _AppointmentCard extends StatelessWidget {
             ],
           ),
         ),
-      )
+      ),
     );
   }
 }
@@ -1882,8 +2037,7 @@ class _StatusChip
   });
 
   Color _backgroundColor() {
-    switch (
-        status.toLowerCase()) {
+    switch (status.toLowerCase()) {
       case 'confirmed':
         return Colors.green
             .withValues(
@@ -1914,8 +2068,7 @@ class _StatusChip
   }
 
   Color _foregroundColor() {
-    switch (
-        status.toLowerCase()) {
+    switch (status.toLowerCase()) {
       case 'confirmed':
         return Colors
             .green.shade700;

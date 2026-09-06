@@ -99,8 +99,8 @@ class _ClientProfileScreenState
         SnackBar(
           content: Text(
             value
-                ? 'Email notifications enabled.'
-                : 'Email notifications disabled.',
+                ? 'Newsletter subscription enabled.'
+                : 'Newsletter subscription disabled.',
           ),
         ),
       );
@@ -226,23 +226,23 @@ class _ClientProfileScreenState
   }
 
   String? _getProfileImageUrl(User user) {
-  final path = user.profileImagePath;
+    final path = user.profileImagePath;
 
-  if (path == null || path.trim().isEmpty) {
-    return null;
+    if (path == null || path.trim().isEmpty) {
+      return null;
+    }
+
+    if (path.startsWith('http://') ||
+        path.startsWith('https://')) {
+      return path;
+    }
+
+    final normalizedPath = path
+        .replaceAll('\\', '/')
+        .replaceFirst(RegExp(r'^/+'), '');
+
+    return '${ApiConfig.baseUrl}/$normalizedPath';
   }
-
-  if (path.startsWith('http://') ||
-      path.startsWith('https://')) {
-    return path;
-  }
-
-  final normalizedPath = path
-      .replaceAll('\\', '/')
-      .replaceFirst(RegExp(r'^/+'), '');
-
-  return '${ApiConfig.baseUrl}/$normalizedPath';
-}
 
   @override
   Widget build(BuildContext context) {
@@ -552,7 +552,7 @@ class _ClientProfileScreenState
                     CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Email notifications',
+                    'Newsletter',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                     ),

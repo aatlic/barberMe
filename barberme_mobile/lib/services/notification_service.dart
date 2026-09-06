@@ -135,4 +135,31 @@ class NotificationService {
 
     return fallback;
   }
+
+  Future<void> markAllAsRead() async {
+    final token = await _storage.read(
+      key: 'jwt_token',
+    );
+
+    final response = await http.put(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/api/Notifications/read-all',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      return;
+    }
+
+    throw Exception(
+      _getErrorMessage(
+        response.body,
+        'Failed to mark notifications as read.',
+      ),
+    );
+  }
 }

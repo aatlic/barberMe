@@ -412,7 +412,7 @@ class _ClientHomeScreenState
                     _errorMessage = null;
                   });
 
-                  _loadShopData();
+                  _refreshHome();
                 },
                 child:
                     const Text(

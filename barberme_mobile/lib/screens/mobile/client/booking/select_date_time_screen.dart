@@ -6,8 +6,9 @@ import '../../../../models/available_slot.dart';
 import '../../../../models/calendar_availability.dart';
 import '../../../../services/appointment_service.dart';
 import '../../../../services/payment_service.dart';
-import '../client_main_screen.dart';
 import '../../../../services/recommendation_service.dart';
+
+import '../client_main_screen.dart';
 
 class SelectDateTimeScreen extends StatefulWidget {
   final int barberId;
@@ -46,7 +47,7 @@ class _SelectDateTimeScreenState
 
   final PaymentService _paymentService =
       PaymentService();
-  
+
   final RecommendationService _recommendationService =
       RecommendationService();
 
@@ -87,7 +88,8 @@ class _SelectDateTimeScreenState
 
     try {
       final result =
-          await _appointmentService.getCalendarAvailability(
+          await _appointmentService
+              .getCalendarAvailability(
         barberId: widget.barberId,
         serviceId: widget.serviceId,
         year: focusedDay.year,
@@ -118,8 +120,7 @@ class _SelectDateTimeScreenState
   CalendarAvailability? _getAvailability(
     DateTime day,
   ) {
-    for (final item
-        in _calendarAvailability) {
+    for (final item in _calendarAvailability) {
       if (isSameDay(
         item.date,
         day,
@@ -174,7 +175,8 @@ class _SelectDateTimeScreenState
 
     try {
       final slots =
-          await _appointmentService.getAvailableSlots(
+          await _appointmentService
+              .getAvailableSlots(
         barberId: widget.barberId,
         serviceId: widget.serviceId,
         date: _selectedDate!,
@@ -257,13 +259,14 @@ class _SelectDateTimeScreenState
       );
 
       if (widget.recommendationId != null) {
-        await _recommendationService.setAcceptance(
+        await _recommendationService
+            .setAcceptance(
           recommendationId:
               widget.recommendationId!,
           wasAccepted: true,
         );
       }
-      
+
       if (!mounted) return;
 
       final enableReminder =
@@ -375,33 +378,13 @@ class _SelectDateTimeScreenState
 
           if (!mounted) return;
 
-          await showDialog<void>(
-            context: context,
-            builder: (dialogContext) {
-              return AlertDialog(
-                icon: const Icon(
-                  Icons.check_circle_outline,
-                  size: 48,
-                ),
-                title: const Text(
-                  'Payment successful',
-                ),
-                content: const Text(
-                  'Your appointment has been paid successfully.',
-                ),
-                actions: [
-                  FilledButton(
-                    onPressed: () {
-                      Navigator.of(
-                        dialogContext,
-                      ).pop();
-                    },
-                    child:
-                        const Text('OK'),
-                  ),
-                ],
-              );
-            },
+          ScaffoldMessenger.of(context)
+              .showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Payment completed successfully.',
+              ),
+            ),
           );
         } on StripeException catch (e) {
           if (!mounted) return;

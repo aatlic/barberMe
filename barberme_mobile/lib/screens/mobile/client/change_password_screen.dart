@@ -272,8 +272,15 @@ class _ChangePasswordScreenState
               const SizedBox(height: 28),
 
               SizedBox(
-                height: 50,
+                height: 54,
                 child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 24,
+                    ),
+                    alignment: Alignment.center,
+                  ),
                   onPressed: _isSaving
                       ? null
                       : _changePassword,
@@ -281,13 +288,17 @@ class _ChangePasswordScreenState
                       ? const SizedBox(
                           width: 22,
                           height: 22,
-                          child:
-                              CircularProgressIndicator(
+                          child: CircularProgressIndicator(
                             strokeWidth: 2,
                           ),
                         )
                       : const Text(
                           'Change password',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            height: 1.2,
+                          ),
                         ),
                 ),
               ),

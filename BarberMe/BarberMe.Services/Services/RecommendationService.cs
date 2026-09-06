@@ -33,307 +33,427 @@ namespace BarberMe.Services.Services
                 throw new UnauthorizedException("User is not authenticated.");
             }
 
-            var userExists = await _context.Users
-                .AsNoTracking()
-                .AnyAsync(x =>
-                    x.UserId == userId &&
-                    x.IsActive);
+            var userExists =
+                await _context.Users
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.UserId == userId &&
+                        x.IsActive);
 
             if (!userExists)
             {
-                throw new UnauthorizedException("The authenticated user does not exist or is inactive.");
+                throw new UnauthorizedException(
+                    "The authenticated user does not exist or is inactive.");
             }
 
             /*
-             * Only completed appointments represent services that the client
-             * actually consumed. Cancelled, pending and confirmed appointments
-             * must not influence personal preferences.
+             * Only completed appointments represent
+             * services that the client actually consumed.
              */
-            var completedAppointments = await _context.Appointments
-                .AsNoTracking()
-                .Include(x => x.BarberService)
-                .Include(x => x.Review)
-                .Where(x =>
-                    x.ClientId == userId &&
-                    x.AppointmentStatusId ==
+            var completedAppointments =
+                await _context.Appointments
+                    .AsNoTracking()
+                    .Include(x =>
+                        x.BarberService)
+                    .Include(x =>
+                        x.Review)
+                    .Where(x =>
+                        x.ClientId == userId &&
+                        x.AppointmentStatusId ==
                         (int)AppointmentStatusType.Completed)
-                .ToListAsync();
+                    .ToListAsync();
 
             /*
-             * Only offers whose service and barber are currently active
-             * may be recommended.
+             * A client without completed appointment history
+             * does not receive personalized recommendations.
              */
-            var availableBarberServices = await _context.BarberServices
-                .AsNoTracking()
-                .Include(x => x.Service)
-                .Include(x => x.Barber)
-                .Where(x =>
-                    x.Service.IsActive &&
-                    x.Barber.IsActive)
-                .ToListAsync();
+            if (completedAppointments.Count == 0)
+            {
+                await RemoveUnusedRecommendationsAsync(
+                    userId);
+
+                await _context.SaveChangesAsync();
+
+                return new List<RecommendationResponse>();
+            }
+
+            /*
+             * BarberService offers previously rejected by
+             * this client should not be recommended again.
+             *
+             * Rejected Recommendation records remain in the
+             * database as recommendation history.
+             */
+            var rejectedBarberServiceIds =
+                await _context.Recommendations
+                    .AsNoTracking()
+                    .Where(x =>
+                        x.UserId == userId &&
+                        x.WasAccepted == false)
+                    .Select(x =>
+                        x.BarberServiceId)
+                    .Distinct()
+                    .ToListAsync();
+
+            /*
+             * Only offers whose service and barber are
+             * currently active and which the client has not
+             * previously rejected may be recommended.
+             */
+            var availableBarberServices =
+                await _context.BarberServices
+                    .AsNoTracking()
+                    .Include(x =>
+                        x.Service)
+                    .Include(x =>
+                        x.Barber)
+                    .Where(x =>
+                        x.Service.IsActive &&
+                        x.Barber.IsActive &&
+                        !rejectedBarberServiceIds.Contains(
+                            x.BarberServiceId))
+                    .ToListAsync();
 
             if (availableBarberServices.Count == 0)
             {
-                await RemoveUnusedRecommendationsAsync(userId);
+                await RemoveUnusedRecommendationsAsync(
+                    userId);
+
+                await _context.SaveChangesAsync();
 
                 return new List<RecommendationResponse>();
             }
 
             /*
              * PERSONAL SIGNAL 1:
-             * Number of times the client used each general service.
+             * Number of times the client used each
+             * general service.
              */
-            var serviceUsageCounts = completedAppointments
-                .GroupBy(x => x.BarberService.ServiceId)
-                .ToDictionary(
-                    x => x.Key,
-                    x => x.Count());
+            var serviceUsageCounts =
+                completedAppointments
+                    .GroupBy(x =>
+                        x.BarberService.ServiceId)
+                    .ToDictionary(
+                        x => x.Key,
+                        x => x.Count());
 
             /*
              * PERSONAL SIGNAL 2:
-             * Number of times the client booked each barber.
+             * Number of times the client booked
+             * each barber.
              */
-            var barberUsageCounts = completedAppointments
-                .GroupBy(x => x.BarberId)
-                .ToDictionary(
-                    x => x.Key,
-                    x => x.Count());
+            var barberUsageCounts =
+                completedAppointments
+                    .GroupBy(x =>
+                        x.BarberId)
+                    .ToDictionary(
+                        x => x.Key,
+                        x => x.Count());
 
             /*
              * PERSONAL SIGNAL 3:
-             * Number of times the client booked the exact BarberService.
+             * Number of times the client booked
+             * the exact BarberService.
              */
-            var barberServiceUsageCounts = completedAppointments
-                .GroupBy(x => x.BarberServiceId)
-                .ToDictionary(
-                    x => x.Key,
-                    x => x.Count());
+            var barberServiceUsageCounts =
+                completedAppointments
+                    .GroupBy(x =>
+                        x.BarberServiceId)
+                    .ToDictionary(
+                        x => x.Key,
+                        x => x.Count());
 
             /*
              * PERSONAL SIGNAL 4:
-             * Client's average review for each general service.
+             * Client's average review for each
+             * general service.
              */
-            var personalServiceRatings = completedAppointments
-                .Where(x => x.Review != null)
-                .GroupBy(x => x.BarberService.ServiceId)
-                .ToDictionary(
-                    x => x.Key,
-                    x => x.Average(a => a.Review!.Rating));
+            var personalServiceRatings =
+                completedAppointments
+                    .Where(x =>
+                        x.Review != null)
+                    .GroupBy(x =>
+                        x.BarberService.ServiceId)
+                    .ToDictionary(
+                        x => x.Key,
+                        x => x.Average(
+                            a => a.Review!.Rating));
 
             /*
              * GLOBAL SIGNAL 1:
-             * Popularity of every BarberService among all clients.
+             * Popularity of every BarberService
+             * among all clients.
              */
-            var globalPopularityCounts = await _context.Appointments
-                .AsNoTracking()
-                .Where(x => x.AppointmentStatusId == (int)AppointmentStatusType.Completed)
-                .GroupBy(x => x.BarberServiceId)
-                .Select(x => new
-                {
-                    BarberServiceId = x.Key,
-                    Count = x.Count()
-                })
-                .ToDictionaryAsync(
-                    x => x.BarberServiceId,
-                    x => x.Count);
+            var globalPopularityCounts =
+                await _context.Appointments
+                    .AsNoTracking()
+                    .Where(x =>
+                        x.AppointmentStatusId ==
+                        (int)AppointmentStatusType.Completed)
+                    .GroupBy(x =>
+                        x.BarberServiceId)
+                    .Select(x =>
+                        new
+                        {
+                            BarberServiceId =
+                                x.Key,
+                            Count =
+                                x.Count()
+                        })
+                    .ToDictionaryAsync(
+                        x =>
+                            x.BarberServiceId,
+                        x =>
+                            x.Count);
 
             /*
              * GLOBAL SIGNAL 2:
              * Average review for every BarberService.
              */
-            var globalRatings = await _context.Reviews
-                .AsNoTracking()
-                .GroupBy(x => x.Appointment.BarberServiceId)
-                .Select(x => new
-                {
-                    BarberServiceId = x.Key,
-                    AverageRating = x.Average(r => r.Rating)
-                })
-                .ToDictionaryAsync(
-                    x => x.BarberServiceId,
-                    x => x.AverageRating);
+            var globalRatings =
+                await _context.Reviews
+                    .AsNoTracking()
+                    .GroupBy(x =>
+                        x.Appointment
+                            .BarberServiceId)
+                    .Select(x =>
+                        new
+                        {
+                            BarberServiceId =
+                                x.Key,
+                            AverageRating =
+                                x.Average(
+                                    r =>
+                                        r.Rating)
+                        })
+                    .ToDictionaryAsync(
+                        x =>
+                            x.BarberServiceId,
+                        x =>
+                            x.AverageRating);
 
             var maximumServiceUsage =
-                serviceUsageCounts.Values.DefaultIfEmpty(0).Max();
+                serviceUsageCounts
+                    .Values
+                    .DefaultIfEmpty(0)
+                    .Max();
 
             var maximumBarberUsage =
-                barberUsageCounts.Values.DefaultIfEmpty(0).Max();
+                barberUsageCounts
+                    .Values
+                    .DefaultIfEmpty(0)
+                    .Max();
 
             var maximumBarberServiceUsage =
-                barberServiceUsageCounts.Values.DefaultIfEmpty(0).Max();
+                barberServiceUsageCounts
+                    .Values
+                    .DefaultIfEmpty(0)
+                    .Max();
 
             var maximumGlobalPopularity =
-                globalPopularityCounts.Values.DefaultIfEmpty(0).Max();
-
-            var hasPersonalHistory = completedAppointments.Count > 0;
+                globalPopularityCounts
+                    .Values
+                    .DefaultIfEmpty(0)
+                    .Max();
 
             var calculatedRecommendations =
                 new List<CalculatedRecommendation>();
 
-            foreach (var barberService in availableBarberServices)
+            foreach (var barberService
+                in availableBarberServices)
             {
-                var servicePreference = NormalizeCount(
-                    serviceUsageCounts.GetValueOrDefault(
-                        barberService.ServiceId),
-                    maximumServiceUsage);
+                var servicePreference =
+                    NormalizeCount(
+                        serviceUsageCounts
+                            .GetValueOrDefault(
+                                barberService
+                                    .ServiceId),
+                        maximumServiceUsage);
 
-                var barberPreference = NormalizeCount(
-                    barberUsageCounts.GetValueOrDefault(
-                        barberService.BarberId),
-                    maximumBarberUsage);
+                var barberPreference =
+                    NormalizeCount(
+                        barberUsageCounts
+                            .GetValueOrDefault(
+                                barberService
+                                    .BarberId),
+                        maximumBarberUsage);
 
-                var exactOfferPreference = NormalizeCount(
-                    barberServiceUsageCounts.GetValueOrDefault(
-                        barberService.BarberServiceId),
-                    maximumBarberServiceUsage);
+                var exactOfferPreference =
+                    NormalizeCount(
+                        barberServiceUsageCounts
+                            .GetValueOrDefault(
+                                barberService
+                                    .BarberServiceId),
+                        maximumBarberServiceUsage);
 
-                var personalRating = NormalizeRating(
-                    personalServiceRatings.GetValueOrDefault(
-                        barberService.ServiceId));
+                var personalRating =
+                    NormalizeRating(
+                        personalServiceRatings
+                            .GetValueOrDefault(
+                                barberService
+                                    .ServiceId));
 
-                var popularity = NormalizeCount(
-                    globalPopularityCounts.GetValueOrDefault(
-                        barberService.BarberServiceId),
-                    maximumGlobalPopularity);
+                var popularity =
+                    NormalizeCount(
+                        globalPopularityCounts
+                            .GetValueOrDefault(
+                                barberService
+                                    .BarberServiceId),
+                        maximumGlobalPopularity);
 
-                var globalRating = NormalizeRating(
-                    globalRatings.GetValueOrDefault(
-                        barberService.BarberServiceId));
-
-                decimal score;
-
-                if (hasPersonalHistory)
-                {
-                    /*
-                     * Personalized Content-Based score:
-                     *
-                     * 35% previously used service
-                     * 25% preferred barber
-                     * 15% previously used exact offer
-                     * 15% personal rating
-                     *  5% global popularity
-                     *  5% global rating
-                     */
-                    score =
-                        servicePreference * 0.35m +
-                        barberPreference * 0.25m +
-                        exactOfferPreference * 0.15m +
-                        personalRating * 0.15m +
-                        popularity * 0.05m +
-                        globalRating * 0.05m;
-                }
-                else
-                {
-                    /*
-                     * Cold-start score for a client without history.
-                     */
-                    score =
-                        popularity * 0.60m +
-                        globalRating * 0.40m;
-                }
+                var globalRating =
+                    NormalizeRating(
+                        globalRatings
+                            .GetValueOrDefault(
+                                barberService
+                                    .BarberServiceId));
 
                 /*
-                 * A new application may have no completed appointments or
-                 * reviews at all. Giving every candidate a small baseline
-                 * allows the client to receive initial recommendations.
+                 * Personalized Content-Based score:
+                 *
+                 * 35% previously used service
+                 * 25% preferred barber
+                 * 15% previously used exact offer
+                 * 15% personal rating
+                 *  5% global popularity
+                 *  5% global rating
                  */
-                if (score == 0)
-                {
-                    score = 0.10m;
-                }
+                var score =
+                    servicePreference * 0.35m +
+                    barberPreference * 0.25m +
+                    exactOfferPreference * 0.15m +
+                    personalRating * 0.15m +
+                    popularity * 0.05m +
+                    globalRating * 0.05m;
 
-                score = Math.Round(Math.Clamp(score, 0m, 1m), 4);
+                score = Math.Round(
+                    Math.Clamp(
+                        score,
+                        0m,
+                        1m),
+                    4);
 
-                var explanation = BuildExplanation(
-                    barberService,
-                    hasPersonalHistory,
-                    servicePreference,
-                    barberPreference,
-                    exactOfferPreference,
-                    personalRating,
-                    popularity,
-                    globalRating);
+                var explanation =
+                    BuildExplanation(
+                        barberService,
+                        servicePreference,
+                        barberPreference,
+                        exactOfferPreference,
+                        personalRating,
+                        popularity,
+                        globalRating);
 
                 calculatedRecommendations.Add(
                     new CalculatedRecommendation
                     {
-                        BarberService = barberService,
-                        Score = score,
-                        Explanation = explanation
+                        BarberService =
+                            barberService,
+                        Score =
+                            score,
+                        Explanation =
+                            explanation
                     });
             }
 
-            var bestRecommendations = calculatedRecommendations
-                .OrderByDescending(x => x.Score)
-                .ThenBy(x => x.BarberService.Price)
-                .ThenBy(x => x.BarberService.BarberServiceId)
-                .Take(MaximumRecommendations)
-                .ToList();
+            var bestRecommendations =
+                calculatedRecommendations
+                    .OrderByDescending(x =>
+                        x.Score)
+                    .ThenBy(x =>
+                        x.BarberService.Price)
+                    .ThenBy(x =>
+                        x.BarberService
+                            .BarberServiceId)
+                    .Take(
+                        MaximumRecommendations)
+                    .ToList();
 
             /*
-             * Previous recommendations without feedback are temporary and
-             * may safely be replaced by newly calculated results.
+             * Previous recommendations without feedback
+             * or acceptance state are temporary and may
+             * safely be replaced.
              *
-             * Recommendations that already have feedback are preserved as
-             * historical data.
+             * Recommendations with accepted/rejected state
+             * or feedback remain as historical data.
              */
-            await RemoveUnusedRecommendationsAsync(userId);
+            await RemoveUnusedRecommendationsAsync(
+                userId);
 
-            var recommendationEntities = bestRecommendations
-                .Select(x => new Recommendation
-                {
-                    UserId = userId,
-                    BarberServiceId =
-                        x.BarberService.BarberServiceId,
-                    Score = x.Score,
-                    Explanation = x.Explanation,
-                    CreatedAt = DateTime.UtcNow
-                })
-                .ToList();
+            var recommendationEntities =
+                bestRecommendations
+                    .Select(x =>
+                        new Recommendation
+                        {
+                            UserId =
+                                userId,
 
-            _context.Recommendations.AddRange(recommendationEntities);
+                            BarberServiceId =
+                                x.BarberService
+                                    .BarberServiceId,
+
+                            Score =
+                                x.Score,
+
+                            Explanation =
+                                x.Explanation,
+
+                            CreatedAt =
+                                DateTime.UtcNow
+                        })
+                    .ToList();
+
+            if (recommendationEntities.Count > 0)
+            {
+                _context.Recommendations
+                    .AddRange(
+                        recommendationEntities);
+            }
 
             await _context.SaveChangesAsync();
 
-            var response = recommendationEntities
-                .Select(entity =>
-                {
-                    var calculated = bestRecommendations
-                        .First(x =>
-                            x.BarberService.BarberServiceId ==
-                            entity.BarberServiceId);
-
-                    var barberService = calculated.BarberService;
-
-                    return new RecommendationResponse
+            var response =
+                recommendationEntities
+                    .Select(entity =>
                     {
-                        RecommendationId = entity.RecommendationId,
+                        var calculated =
+                            bestRecommendations
+                                .First(x =>
+                                    x.BarberService
+                                        .BarberServiceId ==
+                                    entity
+                                        .BarberServiceId);
 
-                        BarberServiceId = barberService.BarberServiceId,
+                        var barberService = calculated.BarberService;
 
-                        ServiceId = barberService.ServiceId,
+                        return new RecommendationResponse
+                        {
+                            RecommendationId = entity.RecommendationId,
 
-                        ServiceName = barberService.Service.Name,
+                            BarberServiceId = barberService.BarberServiceId,
 
-                        BarberId = barberService.BarberId,
+                            ServiceId = barberService.ServiceId,
 
-                        BarberName = $"{barberService.Barber.FirstName} {barberService.Barber.LastName}",
+                            ServiceName = barberService.Service.Name,
 
-                        Price = barberService.Price,
+                            BarberId = barberService.BarberId,
 
-                        DurationMinutes = barberService.DurationMinutes,
+                            BarberName = $"{barberService.Barber.FirstName} {barberService.Barber.LastName}",
 
-                        Score = entity.Score,
+                            Price = barberService.Price,
 
-                        Explanation = entity.Explanation,
+                            DurationMinutes = barberService.DurationMinutes,
 
-                        CreatedAt = entity.CreatedAt,
+                            Score = entity.Score,
 
-                        WasAccepted = entity.WasAccepted,
-                    };
-                })
+                            Explanation = entity.Explanation,
+
+                            CreatedAt = entity.CreatedAt,
+
+                            WasAccepted = entity.WasAccepted,
+                        };
+                    })
                 .OrderByDescending(x => x.Score)
-                .ToList();
+                    .ToList();
 
             return response;
         }
@@ -364,9 +484,12 @@ namespace BarberMe.Services.Services
                 throw new UnauthorizedException("User is not authenticated.");
             }
 
-            var recommendation = await _context.Recommendations
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.RecommendationId == recommendationId);
+            var recommendation =
+                await _context.Recommendations
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x =>
+                        x.RecommendationId ==
+                            recommendationId);
 
             if (recommendation == null)
             {
@@ -379,8 +502,11 @@ namespace BarberMe.Services.Services
             }
 
             var feedbackAlreadyExists =
-                await _context.RecommendationFeedbacks
-                    .AnyAsync(x => x.RecommendationId == recommendationId);
+                await _context
+                    .RecommendationFeedbacks
+                    .AnyAsync(x =>
+                        x.RecommendationId ==
+                            recommendationId);
 
             if (feedbackAlreadyExists)
             {
@@ -388,15 +514,15 @@ namespace BarberMe.Services.Services
             }
 
             var feedback = new RecommendationFeedback
-            {
-                RecommendationId = recommendationId,
-                Rating = request.Rating,
-                Comment = string.IsNullOrWhiteSpace(
-                    request.Comment)
-                    ? null
-                    : request.Comment.Trim(),
-                CreatedAt = DateTime.UtcNow
-            };
+                {
+                    RecommendationId = recommendationId,
+                    Rating = request.Rating,
+                    Comment = string.IsNullOrWhiteSpace(
+                                request.Comment)
+                                ? null
+                                : request.Comment.Trim(),
+                    CreatedAt = DateTime.UtcNow
+                };
 
             _context.RecommendationFeedbacks.Add(feedback);
 
@@ -441,7 +567,11 @@ namespace BarberMe.Services.Services
                 return 0m;
             }
 
-            return Math.Clamp((decimal)value / maximumValue, 0m, 1m);
+            return Math.Clamp(
+                (decimal)value /
+                    maximumValue,
+                0m,
+                1m);
         }
 
         private static decimal NormalizeRating(double rating)
@@ -451,12 +581,14 @@ namespace BarberMe.Services.Services
                 return 0m;
             }
 
-            return Math.Clamp((decimal)rating / 5m, 0m, 1m);
+            return Math.Clamp(
+                (decimal)rating / 5m,
+                0m,
+                1m);
         }
 
         private static string BuildExplanation(
             BarberService barberService,
-            bool hasPersonalHistory,
             decimal servicePreference,
             decimal barberPreference,
             decimal exactOfferPreference,
@@ -468,57 +600,42 @@ namespace BarberMe.Services.Services
 
             var serviceName = barberService.Service.Name;
 
-            if (!hasPersonalHistory)
-            {
-                if (globalRating >= popularity &&
-                    globalRating > 0)
+            var strongestSignal =
+                new[]
                 {
-                    return  $"Recommended because {serviceName} with {barberName} is highly rated by clients.";
+                    new
+                    {
+                        Name = "service",
+                        Value = servicePreference
+                    },
+                    new
+                    {
+                        Name = "barber",
+                        Value = barberPreference
+                    },
+                    new
+                    {
+                        Name = "exactOffer",
+                        Value = exactOfferPreference
+                    },
+                    new
+                    {
+                        Name = "personalRating",
+                        Value = personalRating
+                    },
+                    new
+                    {
+                        Name = "popularity",
+                        Value = popularity
+                    },
+                    new
+                    {
+                        Name = "globalRating",
+                        Value = globalRating
+                    }
                 }
-
-                if (popularity > 0)
-                {
-                    return $"Recommended because {serviceName} with {barberName} is popular among clients.";
-                }
-
-                return $"Recommended as an available service for new clients.";
-            }
-
-            var strongestSignal = new[]
-            {
-                new
-                {
-                    Name = "service",
-                    Value = servicePreference
-                },
-                new
-                {
-                    Name = "barber",
-                    Value = barberPreference
-                },
-                new
-                {
-                    Name = "exactOffer",
-                    Value = exactOfferPreference
-                },
-                new
-                {
-                    Name = "personalRating",
-                    Value = personalRating
-                },
-                new
-                {
-                    Name = "popularity",
-                    Value = popularity
-                },
-                new
-                {
-                    Name = "globalRating",
-                    Value = globalRating
-                }
-            }
-            .OrderByDescending(x => x.Value)
-            .First();
+                .OrderByDescending(x => x.Value)
+                .First();
 
             return strongestSignal.Name switch
             {
@@ -539,8 +656,9 @@ namespace BarberMe.Services.Services
 
                 "popularity" =>
                     $"Recommended because {serviceName} with {barberName} is popular among clients.",
+
                 _ =>
-                    $"Recommended based on your previous appointments."
+                    "Recommended based on your previous appointments."
             };
         }
 
@@ -549,7 +667,7 @@ namespace BarberMe.Services.Services
             public BarberService BarberService { get; init; } = null!;
 
             public decimal Score { get; init; }
-            
+
             public string Explanation { get; init; } = string.Empty;
         }
 
@@ -565,9 +683,11 @@ namespace BarberMe.Services.Services
 
             var userId = _currentUserService.UserId;
 
-            var recommendation = await _context.Recommendations
-                .FirstOrDefaultAsync(x =>
-                    x.RecommendationId == recommendationId);
+            var recommendation =
+                await _context.Recommendations
+                    .FirstOrDefaultAsync(x =>
+                        x.RecommendationId ==
+                            recommendationId);
 
             if (recommendation == null)
             {
