@@ -15,6 +15,9 @@ class AppointmentService {
       const FlutterSecureStorage();
 
   Future<PagedResponse<Appointment>> getAppointments({
+    int? clientId,
+    int? barberId,
+    int? serviceId,
     int? appointmentStatusId,
     DateTime? dateFrom,
     DateTime? dateTo,
@@ -29,6 +32,21 @@ class AppointmentService {
       'Page': page.toString(),
       'PageSize': pageSize.toString(),
     };
+
+    if (clientId != null) {
+      queryParameters['ClientId'] =
+          clientId.toString();
+    }
+
+    if (barberId != null) {
+      queryParameters['BarberId'] =
+          barberId.toString();
+    }
+
+    if (serviceId != null) {
+      queryParameters['ServiceId'] =
+          serviceId.toString();
+    }
 
     if (listType != null) {
       queryParameters['ListType'] = listType;
@@ -128,11 +146,25 @@ class AppointmentService {
   }
 
   Future<Appointment> createAppointment({
+    int? clientId,
     required int barberServiceId,
     required DateTime startDateTime,
     bool reminderEnabled = false,
   }) async {
-    final token = await _storage.read(key: 'jwt_token');
+    final token = await _storage.read(
+      key: 'jwt_token',
+    );
+
+    final body = <String, dynamic>{
+      'barberServiceId': barberServiceId,
+      'startDateTime':
+          startDateTime.toIso8601String(),
+      'reminderEnabled': reminderEnabled,
+    };
+
+    if (clientId != null) {
+      body['clientId'] = clientId;
+    }
 
     final response = await http.post(
       Uri.parse(
@@ -142,32 +174,32 @@ class AppointmentService {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({
-        'barberServiceId': barberServiceId,
-        'startDateTime': startDateTime.toIso8601String(),
-        'reminderEnabled': reminderEnabled,
-      }),
+      body: jsonEncode(body),
     );
 
     if (response.statusCode >= 200 &&
         response.statusCode < 300) {
       final data =
-          jsonDecode(response.body) as Map<String, dynamic>;
+          jsonDecode(response.body)
+              as Map<String, dynamic>;
 
       return Appointment.fromJson(data);
     }
 
-    String message = 'Failed to book appointment.';
+    String message =
+        'Failed to book appointment.';
 
     try {
       final data =
-          jsonDecode(response.body) as Map<String, dynamic>;
+          jsonDecode(response.body)
+              as Map<String, dynamic>;
 
       if (data['message'] != null) {
-        message = data['message'].toString();
+        message =
+            data['message'].toString();
       }
     } catch (_) {}
-    
+
     throw Exception(message);
   }
 
@@ -370,5 +402,116 @@ class AppointmentService {
     } catch (_) {}
 
     throw Exception(message);
+  }
+
+  Future<void> confirmAppointment(
+    int appointmentId,
+  ) async {
+    final token = await _storage.read(
+      key: 'jwt_token',
+    );
+
+    final response = await http.put(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/api/Appointments/$appointmentId/confirm',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      return;
+    }
+
+    throw Exception(
+      _getErrorMessage(
+        response.body,
+        'Failed to confirm appointment.',
+      ),
+    );
+  }
+
+  Future<void> completeAppointment(
+    int appointmentId,
+  ) async {
+    final token = await _storage.read(
+      key: 'jwt_token',
+    );
+
+    final response = await http.put(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/api/Appointments/$appointmentId/complete',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      return;
+    }
+
+    throw Exception(
+      _getErrorMessage(
+        response.body,
+        'Failed to complete appointment.',
+      ),
+    );
+  }
+
+  Future<void> markAsNoShow(
+    int appointmentId,
+  ) async {
+    final token = await _storage.read(
+      key: 'jwt_token',
+    );
+
+    final response = await http.post(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/api/Appointments/$appointmentId/no-show',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      return;
+    }
+
+    throw Exception(
+      _getErrorMessage(
+        response.body,
+        'Failed to mark appointment as no-show.',
+      ),
+    );
+  }
+
+  String _getErrorMessage(
+    String body,
+    String fallback,
+  ) {
+    try {
+      final data =
+          jsonDecode(body)
+              as Map<String, dynamic>;
+
+      if (data['message'] != null) {
+        return data['message'].toString();
+      }
+
+      if (data['errors'] is List &&
+          (data['errors'] as List).isNotEmpty) {
+        return (data['errors'] as List)
+            .first
+            .toString();
+      }
+    } catch (_) {}
+
+    return fallback;
   }
 }

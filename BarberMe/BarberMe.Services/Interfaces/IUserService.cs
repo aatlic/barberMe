@@ -1,5 +1,6 @@
 ﻿using BarberMe.Model.Requests.Auth;
 using BarberMe.Model.Requests.User;
+using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.Auth;
 using BarberMe.Model.Responses.User;
 using BarberMe.Model.SearchObjects;
@@ -37,5 +38,10 @@ namespace BarberMe.Services.Interfaces
         Task<List<UserResponse>> GetActiveBarbersAsync();
 
         Task LogoutAsync();
+
+        Task<PagedResponse<UserResponse>> GetActiveClientsAsync(
+            string? fts,
+            int page,
+            int pageSize);
     }
 }

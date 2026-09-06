@@ -14,5 +14,6 @@ namespace BarberMe.Model.SearchObjects
 
         public DateTime? DateTo { get; set; }
         public AppointmentListType? ListType { get; set; }
+        public int? ServiceId { get; set; }
     }
 }

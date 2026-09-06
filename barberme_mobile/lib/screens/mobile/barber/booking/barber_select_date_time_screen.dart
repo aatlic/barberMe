@@ -1,28 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-import '../../../../models/appointment.dart';
 import '../../../../models/available_slot.dart';
+import '../../../../models/barber_service.dart';
 import '../../../../models/calendar_availability.dart';
+import '../../../../models/user.dart';
 import '../../../../services/appointment_service.dart';
 
-class RescheduleAppointmentScreen extends StatefulWidget {
-  final Appointment appointment;
-  final bool showClientName;
+class BarberSelectDateTimeScreen extends StatefulWidget {
+  final User client;
+  final User barber;
+  final BarberService barberService;
 
-  const RescheduleAppointmentScreen({
+  const BarberSelectDateTimeScreen({
     super.key,
-    required this.appointment,
-    this.showClientName = false,
+    required this.client,
+    required this.barber,
+    required this.barberService,
   });
 
   @override
-  State<RescheduleAppointmentScreen> createState() =>
-      _RescheduleAppointmentScreenState();
+  State<BarberSelectDateTimeScreen> createState() =>
+      _BarberSelectDateTimeScreenState();
 }
 
-class _RescheduleAppointmentScreenState
-    extends State<RescheduleAppointmentScreen> {
+class _BarberSelectDateTimeScreenState
+    extends State<BarberSelectDateTimeScreen> {
   final AppointmentService _appointmentService =
       AppointmentService();
 
@@ -34,24 +37,18 @@ class _RescheduleAppointmentScreenState
   List<AvailableSlot> _availableSlots = [];
   List<CalendarAvailability> _calendarAvailability = [];
 
-  bool _isLoadingCalendar = true;
   bool _isLoadingSlots = false;
+  bool _isLoadingCalendar = true;
   bool _isSaving = false;
 
-  String? _calendarErrorMessage;
   String? _slotsErrorMessage;
+  String? _calendarErrorMessage;
 
   @override
   void initState() {
     super.initState();
 
-    final now = DateTime.now();
-
-    _focusedDay = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    );
+    _focusedDay = DateTime.now();
 
     _loadCalendarAvailability(
       _focusedDay,
@@ -68,9 +65,10 @@ class _RescheduleAppointmentScreenState
 
     try {
       final result =
-          await _appointmentService.getCalendarAvailability(
-        barberId: widget.appointment.barberId,
-        serviceId: widget.appointment.serviceId,
+          await _appointmentService
+              .getCalendarAvailability(
+        barberId: widget.barber.id,
+        serviceId: widget.barberService.serviceId,
         year: focusedDay.year,
         month: focusedDay.month,
       );
@@ -128,14 +126,17 @@ class _RescheduleAppointmentScreenState
       day.day,
     );
 
-    if (normalizedDay.isBefore(today)) {
+    if (normalizedDay.isBefore(
+      today,
+    )) {
       return false;
     }
 
     final availability =
         _getAvailability(day);
 
-    return availability?.isWorkingDay == true;
+    return availability?.isWorkingDay ==
+        true;
   }
 
   Future<void> _loadAvailableSlots() async {
@@ -152,9 +153,10 @@ class _RescheduleAppointmentScreenState
 
     try {
       final slots =
-          await _appointmentService.getAvailableSlots(
-        barberId: widget.appointment.barberId,
-        serviceId: widget.appointment.serviceId,
+          await _appointmentService
+              .getAvailableSlots(
+        barberId: widget.barber.id,
+        serviceId: widget.barberService.serviceId,
         date: _selectedDate!,
       );
 
@@ -179,56 +181,9 @@ class _RescheduleAppointmentScreenState
     }
   }
 
-  Future<void> _saveNewTime() async {
+  Future<void> _createAppointment() async {
     if (_selectedSlot == null ||
         _isSaving) {
-      return;
-    }
-
-    final confirmed =
-        await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return AlertDialog(
-          icon: const Icon(
-            Icons.edit_calendar_outlined,
-            size: 44,
-          ),
-          title: const Text(
-            'Reschedule appointment?',
-          ),
-          content: Text(
-            'Change the appointment to '
-            '${_formatDateTime(_selectedSlot!.startDateTime)}?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(
-                  dialogContext,
-                ).pop(false);
-              },
-              child: const Text(
-                'Keep current time',
-              ),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.of(
-                  dialogContext,
-                ).pop(true);
-              },
-              child: const Text(
-                'Reschedule',
-              ),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmed != true) {
       return;
     }
 
@@ -238,11 +193,13 @@ class _RescheduleAppointmentScreenState
 
     try {
       await _appointmentService
-          .rescheduleAppointment(
-        appointmentId:
-            widget.appointment.id,
+          .createAppointment(
+        clientId: widget.client.id,
+        barberServiceId:
+            widget.barberService.id,
         startDateTime:
             _selectedSlot!.startDateTime,
+        reminderEnabled: false,
       );
 
       if (!mounted) return;
@@ -250,19 +207,16 @@ class _RescheduleAppointmentScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Appointment rescheduled successfully.',
+            'Appointment created successfully.',
           ),
         ),
       );
-
-      if (!mounted) return;
 
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             e.toString().replaceFirst(
@@ -282,40 +236,25 @@ class _RescheduleAppointmentScreenState
   }
 
   String _formatTime(
-    DateTime value,
+    DateTime dateTime,
   ) {
     final hour =
-        value.hour.toString().padLeft(
+        dateTime.hour
+            .toString()
+            .padLeft(
               2,
               '0',
             );
 
     final minute =
-        value.minute.toString().padLeft(
+        dateTime.minute
+            .toString()
+            .padLeft(
               2,
               '0',
             );
 
     return '$hour:$minute';
-  }
-
-  String _formatDateTime(
-    DateTime value,
-  ) {
-    final day =
-        value.day.toString().padLeft(
-              2,
-              '0',
-            );
-
-    final month =
-        value.month.toString().padLeft(
-              2,
-              '0',
-            );
-
-    return '$day.$month.${value.year}. '
-        '${_formatTime(value)}';
   }
 
   @override
@@ -325,7 +264,7 @@ class _RescheduleAppointmentScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Reschedule appointment',
+          'Select date & time',
           style: TextStyle(
             fontWeight: FontWeight.bold,
           ),
@@ -341,21 +280,22 @@ class _RescheduleAppointmentScreenState
                   20,
                 ),
                 children: [
-                  _buildCurrentAppointment(),
+                  _buildBookingSummary(),
 
                   const SizedBox(
                     height: 24,
                   ),
 
                   Text(
-                    'Select new date',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(
-                          fontWeight:
-                              FontWeight.bold,
-                        ),
+                    'Select date',
+                    style:
+                        Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(
+                              fontWeight:
+                                  FontWeight.bold,
+                            ),
                   ),
 
                   const SizedBox(
@@ -370,20 +310,22 @@ class _RescheduleAppointmentScreenState
 
                   const _CalendarLegend(),
 
-                  if (_selectedDate != null) ...[
+                  if (_selectedDate !=
+                      null) ...[
                     const SizedBox(
                       height: 28,
                     ),
 
                     Text(
                       'Available times',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(
-                            fontWeight:
-                                FontWeight.bold,
-                          ),
+                      style:
+                          Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(
+                                fontWeight:
+                                    FontWeight.bold,
+                              ),
                     ),
 
                     const SizedBox(
@@ -397,99 +339,6 @@ class _RescheduleAppointmentScreenState
             ),
 
             _buildBottomButton(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCurrentAppointment() {
-    final personName =
-        widget.showClientName
-            ? widget.appointment.clientFullName
-            : widget.appointment.barberFullName;
-
-    return Card(
-      child: Padding(
-        padding:
-            const EdgeInsets.all(
-          16,
-        ),
-        child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Current appointment',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight:
-                    FontWeight.w600,
-                color: Colors.grey,
-              ),
-            ),
-
-            const SizedBox(
-              height: 14,
-            ),
-
-            Text(
-              widget.appointment
-                  .serviceName,
-              style:
-                  const TextStyle(
-                fontSize: 18,
-                fontWeight:
-                    FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(
-              height: 12,
-            ),
-
-            Row(
-              children: [
-                const Icon(
-                  Icons.person_outline,
-                  size: 20,
-                ),
-
-                const SizedBox(
-                  width: 10,
-                ),
-
-                Expanded(
-                  child: Text(
-                    personName,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(
-              height: 10,
-            ),
-
-            Row(
-              children: [
-                const Icon(
-                  Icons.schedule_outlined,
-                  size: 20,
-                ),
-
-                const SizedBox(
-                  width: 10,
-                ),
-
-                Text(
-                  _formatDateTime(
-                    widget.appointment
-                        .startDateTime,
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       ),
@@ -510,7 +359,8 @@ class _RescheduleAppointmentScreenState
       );
     }
 
-    if (_calendarErrorMessage != null) {
+    if (_calendarErrorMessage !=
+        null) {
       return Padding(
         padding:
             const EdgeInsets.symmetric(
@@ -543,8 +393,7 @@ class _RescheduleAppointmentScreenState
                   _focusedDay,
                 );
               },
-              child:
-                  const Text(
+              child: const Text(
                 'Try again',
               ),
             ),
@@ -553,8 +402,7 @@ class _RescheduleAppointmentScreenState
       );
     }
 
-    final now =
-        DateTime.now();
+    final now = DateTime.now();
 
     final firstDay = DateTime(
       now.year,
@@ -577,8 +425,7 @@ class _RescheduleAppointmentScreenState
         child: TableCalendar(
           firstDay: firstDay,
           lastDay: lastDay,
-          focusedDay:
-              _focusedDay,
+          focusedDay: _focusedDay,
 
           calendarFormat:
               CalendarFormat.month,
@@ -591,10 +438,8 @@ class _RescheduleAppointmentScreenState
 
           headerStyle:
               const HeaderStyle(
-            formatButtonVisible:
-                false,
-            titleCentered:
-                true,
+            formatButtonVisible: false,
+            titleCentered: true,
           ),
 
           selectedDayPredicate:
@@ -631,14 +476,10 @@ class _RescheduleAppointmentScreenState
               _focusedDay =
                   focusedDay;
 
-              _selectedSlot =
-                  null;
+              _selectedSlot = null;
+              _availableSlots = [];
 
-              _availableSlots =
-                  [];
-
-              _slotsErrorMessage =
-                  null;
+              _slotsErrorMessage = null;
             });
 
             await _loadAvailableSlots();
@@ -650,17 +491,11 @@ class _RescheduleAppointmentScreenState
               _focusedDay =
                   focusedDay;
 
-              _selectedDate =
-                  null;
+              _selectedDate = null;
+              _selectedSlot = null;
 
-              _selectedSlot =
-                  null;
-
-              _availableSlots =
-                  [];
-
-              _slotsErrorMessage =
-                  null;
+              _availableSlots = [];
+              _slotsErrorMessage = null;
             });
 
             _loadCalendarAvailability(
@@ -676,12 +511,9 @@ class _RescheduleAppointmentScreenState
               events,
             ) {
               final availability =
-                  _getAvailability(
-                day,
-              );
+                  _getAvailability(day);
 
-              if (availability ==
-                      null ||
+              if (availability == null ||
                   !availability
                       .isWorkingDay) {
                 return null;
@@ -700,8 +532,7 @@ class _RescheduleAppointmentScreenState
                   height: 6,
                   decoration:
                       BoxDecoration(
-                    color:
-                        markerColor,
+                    color: markerColor,
                     shape:
                         BoxShape.circle,
                   ),
@@ -709,6 +540,110 @@ class _RescheduleAppointmentScreenState
               );
             },
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBookingSummary() {
+    final clientName =
+        '${widget.client.firstName} '
+        '${widget.client.lastName}'
+            .trim();
+
+    return Card(
+      child: Padding(
+        padding:
+            const EdgeInsets.all(
+          16,
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.person_outline,
+                  size: 20,
+                ),
+
+                const SizedBox(
+                  width: 10,
+                ),
+
+                Expanded(
+                  child: Text(
+                    clientName,
+                    style:
+                        const TextStyle(
+                      fontWeight:
+                          FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(
+              height: 12,
+            ),
+
+            Row(
+              children: [
+                const Icon(
+                  Icons.content_cut,
+                  size: 20,
+                ),
+
+                const SizedBox(
+                  width: 10,
+                ),
+
+                Expanded(
+                  child: Text(
+                    widget.barberService
+                        .serviceName,
+                    style:
+                        const TextStyle(
+                      fontWeight:
+                          FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(
+              height: 12,
+            ),
+
+            Row(
+              children: [
+                const Icon(
+                  Icons.schedule_outlined,
+                  size: 20,
+                ),
+
+                const SizedBox(
+                  width: 10,
+                ),
+
+                Text(
+                  '${widget.barberService.durationMinutes} min',
+                ),
+
+                const Spacer(),
+
+                Text(
+                  '${widget.barberService.price.toStringAsFixed(2)} BAM',
+                  style:
+                      const TextStyle(
+                    fontWeight:
+                        FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -758,8 +693,7 @@ class _RescheduleAppointmentScreenState
             OutlinedButton(
               onPressed:
                   _loadAvailableSlots,
-              child:
-                  const Text(
+              child: const Text(
                 'Try again',
               ),
             ),
@@ -830,7 +764,7 @@ class _RescheduleAppointmentScreenState
             _selectedSlot == null ||
                     _isSaving
                 ? null
-                : _saveNewTime,
+                : _createAppointment,
         child: Padding(
           padding:
               const EdgeInsets.symmetric(
@@ -842,12 +776,11 @@ class _RescheduleAppointmentScreenState
                   height: 20,
                   child:
                       CircularProgressIndicator(
-                    strokeWidth:
-                        2,
+                    strokeWidth: 2,
                   ),
                 )
               : const Text(
-                  'Save new time',
+                  'Create appointment',
                 ),
         ),
       ),
