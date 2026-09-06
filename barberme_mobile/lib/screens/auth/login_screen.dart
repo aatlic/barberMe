@@ -11,6 +11,7 @@ import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 import '../mobile/client/change_password_screen.dart';
 import 'contact_support_screen.dart';
+import '../mobile/barber/barber_main_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
@@ -99,7 +100,7 @@ class _LoginScreenState
         } else if (roleName == 'Barber' ||
             roleName == 'Admin') {
           destination =
-              const BarberHomeScreen();
+              const BarberMainScreen();
         } else {
           throw Exception(
             'Unsupported user role.',

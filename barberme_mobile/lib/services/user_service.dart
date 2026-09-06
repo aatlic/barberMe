@@ -6,6 +6,7 @@ import 'package:http_parser/http_parser.dart';
 
 import '../core/config/api_config.dart';
 import '../models/user.dart';
+import '../models/paged_response.dart';
 
 class UserService {
   final FlutterSecureStorage _storage =
@@ -273,5 +274,56 @@ class UserService {
     } catch (_) {}
 
     return fallback;
+  }
+
+  Future<PagedResponse<User>> getClients({
+    String? fts,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    final token = await _storage.read(
+      key: 'jwt_token',
+    );
+
+    final queryParameters = <String, String>{
+      'page': page.toString(),
+      'pageSize': pageSize.toString(),
+    };
+
+    if (fts != null && fts.trim().isNotEmpty) {
+      queryParameters['fts'] = fts.trim();
+    }
+
+    final uri = Uri.parse(
+      '${ApiConfig.baseUrl}/api/Users/clients',
+    ).replace(
+      queryParameters: queryParameters,
+    );
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      final data =
+          jsonDecode(response.body)
+              as Map<String, dynamic>;
+
+      return PagedResponse<User>.fromJson(
+        data,
+        User.fromJson,
+      );
+    }
+
+    throw Exception(
+      _getErrorMessage(
+        response.body,
+        'Failed to load clients.',
+      ),
+    );
   }
 }

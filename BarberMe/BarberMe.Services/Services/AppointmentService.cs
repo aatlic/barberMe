@@ -46,19 +46,40 @@ namespace BarberMe.Services.Services
 
             if (_currentUserService.Role == Roles.Client)
             {
-                query = query.Where(x => x.ClientId == _currentUserService.UserId);
+                query = query.Where(x =>
+                    x.ClientId == _currentUserService.UserId);
             }
             else if (_currentUserService.Role == Roles.Barber)
             {
-                query = query.Where(x => x.BarberId == _currentUserService.UserId);
+                query = query.Where(x =>
+                    x.BarberId == _currentUserService.UserId);
+
+                if (search.ClientId.HasValue)
+                {
+                    query = query.Where(x =>
+                        x.ClientId == search.ClientId.Value);
+                }
             }
             else if (_currentUserService.Role == Roles.Admin)
             {
                 if (search.ClientId.HasValue)
-                    query = query.Where(x => x.ClientId == search.ClientId.Value);
+                {
+                    query = query.Where(x =>
+                        x.ClientId == search.ClientId.Value);
+                }
 
                 if (search.BarberId.HasValue)
-                    query = query.Where(x => x.BarberId == search.BarberId.Value);
+                {
+                    query = query.Where(x =>
+                        x.BarberId == search.BarberId.Value);
+                }
+            }
+
+            if (search.ServiceId.HasValue)
+            {
+                query = query.Where(x =>
+                    x.BarberService.ServiceId ==
+                    search.ServiceId.Value);
             }
 
             if (search.ListType.HasValue)
@@ -204,6 +225,13 @@ namespace BarberMe.Services.Services
             {
                 throw new NotFoundException(
                     "Barber service does not exist.");
+            }
+
+            if (_currentUserService.Role == Roles.Barber &&
+                barberService.BarberId != _currentUserService.UserId)
+            {
+                throw new UnauthorizedException(
+                    "You can only create appointments for your own services.");
             }
 
             if (!barberService.Barber.IsActive)

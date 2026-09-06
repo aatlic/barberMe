@@ -239,5 +239,20 @@ namespace BarberMe.API.Controllers
                 message = "Logged out successfully."
             });
         }
+
+        [HttpGet("clients")]
+        [Authorize(Roles = $"{Roles.Admin},{Roles.Barber}")]
+        public async Task<ActionResult<PagedResponse<UserResponse>>> GetActiveClients(
+            [FromQuery] string? fts,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            var result = await _service.GetActiveClientsAsync(
+                fts,
+                page,
+                pageSize);
+
+            return Ok(result);
+        }
     }
 }

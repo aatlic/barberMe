@@ -954,5 +954,58 @@ namespace BarberMe.Services.Services
 
             await _context.SaveChangesAsync();
         }
+
+        public async Task<PagedResponse<UserResponse>> GetActiveClientsAsync(
+            string? fts,
+            int page,
+            int pageSize)
+        {
+            var query = _context.Users
+                .AsNoTracking()
+                .Include(x => x.Role)
+                .Include(x => x.BarberLevel)
+                .Where(x =>
+                    x.IsActive &&
+                    x.Role.Name == Roles.Client)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(fts))
+            {
+                var search = fts.Trim();
+
+                query = query.Where(x =>
+                    x.FirstName.Contains(search) ||
+                    x.LastName.Contains(search) ||
+                    (x.FirstName + " " + x.LastName).Contains(search) ||
+                    x.Username.Contains(search) ||
+                    x.Email.Contains(search));
+            }
+
+            if (page < 1)
+                page = 1;
+
+            if (pageSize < 1)
+                pageSize = 10;
+
+            if (pageSize > 100)
+                pageSize = 100;
+
+            var totalCount = await query.CountAsync();
+
+            var list = await query
+                .OrderBy(x => x.FirstName)
+                .ThenBy(x => x.LastName)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResponse<UserResponse>
+            {
+                Items = _mapper.Map<List<UserResponse>>(list),
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
     }
 }
