@@ -7,6 +7,8 @@ import '../../../services/appointment_service.dart';
 import '../../../services/user_service.dart';
 import 'booking/barber_select_service_screen.dart';
 
+import '../client/notifications_screen.dart';
+
 class BarberHomeScreen extends StatefulWidget {
   const BarberHomeScreen({
     super.key,
@@ -203,6 +205,22 @@ class _BarberHomeScreenState
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Notifications',
+            icon: const Icon(
+              Icons.notifications_outlined,
+            ),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      const NotificationsScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: ListView(

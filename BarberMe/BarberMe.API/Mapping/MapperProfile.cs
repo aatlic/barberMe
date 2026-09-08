@@ -94,8 +94,19 @@ namespace BarberMe.API.Mapping
                 )
                 .ForMember(
                     dest => dest.HasReview,
-                    opt => opt.MapFrom(src => src.Review != null)
-                );
+                    opt => opt.MapFrom(src => src.Review != null))
+                .ForMember(
+                    dest => dest.ReviewRating,
+                    opt => opt.MapFrom(src =>
+                        src.Review != null
+                            ? (int?)src.Review.Rating
+                            : null))
+                .ForMember(
+                    dest => dest.ReviewComment,
+                    opt => opt.MapFrom(src =>
+                        src.Review != null
+                            ? src.Review.Comment
+                            : null));
 
             CreateMap<Notification, NotificationResponse>()
                 .ForMember(
