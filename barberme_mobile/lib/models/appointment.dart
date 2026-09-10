@@ -27,6 +27,9 @@ class Appointment {
 
   final bool hasReview;
 
+  final int? reviewRating;
+  final String? reviewComment;
+
   final double basePrice;
   final double appliedDiscountPercent;
   final double appliedPenaltyPercent;
@@ -50,6 +53,8 @@ class Appointment {
     required this.reminderEnabled,
     required this.cancellationReason,
     required this.hasReview,
+    required this.reviewRating,
+    required this.reviewComment,
     required this.basePrice,
     required this.appliedDiscountPercent,
     required this.appliedPenaltyPercent,
@@ -81,6 +86,8 @@ class Appointment {
       cancellationReason:
           json['cancellationReason']?.toString(),
       hasReview: json['hasReview'] as bool? ?? false,
+      reviewRating: json['reviewRating'] as int?,
+      reviewComment: json['reviewComment']?.toString(),
       basePrice: (json['basePrice'] as num).toDouble(),
       appliedDiscountPercent:
           (json['appliedDiscountPercent'] as num).toDouble(),

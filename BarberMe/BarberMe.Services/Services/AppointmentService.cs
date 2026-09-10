@@ -293,10 +293,10 @@ namespace BarberMe.Services.Services
                 entity.EndDateTime);
 
             var isTaken = await _context.Appointments
-                .AnyAsync(x =>
+                    .AnyAsync(x =>
                     x.BarberId == entity.BarberId &&
-                    x.AppointmentStatusId !=
-                        (int)AppointmentStatusType.Cancelled &&
+                        x.AppointmentStatusId !=
+                            (int)AppointmentStatusType.Cancelled &&
                     entity.StartDateTime < x.EndDateTime &&
                     entity.EndDateTime > x.StartDateTime);
 
@@ -329,15 +329,36 @@ namespace BarberMe.Services.Services
                     CreatedAt = DateTime.UtcNow
                 });
 
-            var createdAppointment = await _context.Appointments
-                .AsNoTracking()
-                .Include(x => x.Client)
-                .Include(x => x.Barber)
-                .Include(x => x.BarberService)
-                    .ThenInclude(x => x.Service)
-                .Include(x => x.AppointmentStatus)
-                .FirstAsync(x =>
-                    x.AppointmentId == entity.AppointmentId);
+            if (_currentUserService.UserId != entity.BarberId)
+            {
+                await _rabbitMQPublisher.PublishAsync(
+                    new NotificationMessage
+                    {
+                        UserId = entity.BarberId,
+                        NotificationTypeId =
+                            NotificationTypeEnum.Reservation,
+                        Title = "New appointment",
+                        Text =
+                            $"A new appointment with " +
+                            $"{client.FirstName} {client.LastName} " +
+                            $"has been scheduled for " +
+                            $"{entity.StartDateTime:dd.MM.yyyy HH:mm}.",
+                        EventType = "AppointmentCreated",
+                        CreatedAt = DateTime.UtcNow
+                    });
+            }
+
+            var createdAppointment =
+                await _context.Appointments
+                    .AsNoTracking()
+                    .Include(x => x.Client)
+                    .Include(x => x.Barber)
+                    .Include(x => x.BarberService)
+                        .ThenInclude(x => x.Service)
+                    .Include(x => x.AppointmentStatus)
+                    .FirstAsync(x =>
+                        x.AppointmentId ==
+                        entity.AppointmentId);
 
             return _mapper.Map<AppointmentResponse>(
                 createdAppointment);
@@ -346,6 +367,7 @@ namespace BarberMe.Services.Services
         public async Task<bool> RescheduleAsync(int appointmentId, AppointmentRescheduleRequest request)
         {
             var entity = await _context.Appointments
+                .Include(x => x.Client)
                 .Include(x => x.BarberService)
                     .ThenInclude(x => x.Service)
                 .Include(x => x.Barber)
@@ -394,7 +416,7 @@ namespace BarberMe.Services.Services
             var newStartDateTime = request.StartDateTime;
 
             var newEndDateTime = newStartDateTime.AddMinutes(
-                entity.BarberService.DurationMinutes);
+                    entity.BarberService.DurationMinutes);
 
             await ValidateBarberWorkingHours(
                 entity.BarberId,
@@ -402,11 +424,11 @@ namespace BarberMe.Services.Services
                 newEndDateTime);
 
             var isTaken = await _context.Appointments
-                .AnyAsync(x =>
+                    .AnyAsync(x =>
                     x.AppointmentId != entity.AppointmentId &&
                     x.BarberId == entity.BarberId &&
-                    x.AppointmentStatusId !=
-                        (int)AppointmentStatusType.Cancelled &&
+                        x.AppointmentStatusId !=
+                            (int)AppointmentStatusType.Cancelled &&
                     newStartDateTime < x.EndDateTime &&
                     newEndDateTime > x.StartDateTime);
 
@@ -428,17 +450,34 @@ namespace BarberMe.Services.Services
                     UserId = entity.ClientId,
                     NotificationTypeId =
                         NotificationTypeEnum.Reservation,
-
                     Title = "Appointment rescheduled",
-
                     Text =
                         $"Your appointment has been rescheduled " +
                         $"from {oldStartDateTime:dd.MM.yyyy HH:mm} " +
                         $"to {entity.StartDateTime:dd.MM.yyyy HH:mm}.",
-
                     EventType = "AppointmentRescheduled",
                     CreatedAt = DateTime.UtcNow
                 });
+
+            if (_currentUserService.UserId != entity.BarberId)
+            {
+                await _rabbitMQPublisher.PublishAsync(
+                    new NotificationMessage
+                    {
+                        UserId = entity.BarberId,
+                        NotificationTypeId = NotificationTypeEnum.Reservation,
+                        Title = "Appointment rescheduled",
+                        Text =
+                            $"The appointment with " +
+                            $"{entity.Client.FirstName} " +
+                            $"{entity.Client.LastName} " +
+                            $"has been rescheduled from " +
+                            $"{oldStartDateTime:dd.MM.yyyy HH:mm} " +
+                            $"to {entity.StartDateTime:dd.MM.yyyy HH:mm}.",
+                        EventType = "AppointmentRescheduled",
+                        CreatedAt = DateTime.UtcNow
+                    });
+            }
 
             return true;
         }
@@ -521,6 +560,7 @@ namespace BarberMe.Services.Services
         public async Task CancelAppointment(int id, CancelAppointmentRequest request)
         {
             var entity = await _context.Appointments
+                .Include(x => x.Client)
                 .FirstOrDefaultAsync(x => x.AppointmentId == id);
 
             if (entity == null)
@@ -558,10 +598,32 @@ namespace BarberMe.Services.Services
                     UserId = entity.ClientId,
                     NotificationTypeId = NotificationTypeEnum.Reservation,
                     Title = "Appointment cancelled",
-                    Text = $"Your appointment on {entity.StartDateTime:dd.MM.yyyy HH:mm} has been cancelled.",
+                    Text =
+                        $"Your appointment on " +
+                        $"{entity.StartDateTime:dd.MM.yyyy HH:mm} " +
+                        $"has been cancelled.",
                     EventType = "AppointmentCancelled",
                     CreatedAt = DateTime.UtcNow
                 });
+
+            if (_currentUserService.UserId != entity.BarberId)
+            {
+                await _rabbitMQPublisher.PublishAsync(
+                    new NotificationMessage
+                    {
+                        UserId = entity.BarberId,
+                        NotificationTypeId = NotificationTypeEnum.Reservation,
+                        Title = "Appointment cancelled",
+                        Text =
+                            $"The appointment with " +
+                            $"{entity.Client.FirstName} " +
+                            $"{entity.Client.LastName} on " +
+                            $"{entity.StartDateTime:dd.MM.yyyy HH:mm} " +
+                            $"has been cancelled.",
+                        EventType = "AppointmentCancelled",
+                        CreatedAt = DateTime.UtcNow
+                    });
+            }
         }
 
         public async Task ConfirmAppointment(int id)
@@ -574,15 +636,27 @@ namespace BarberMe.Services.Services
 
             ValidateAppointmentManagementAccess(entity);
 
-            if (entity.AppointmentStatusId != (int)Model.Enum.AppointmentStatusType.Pending)
+            if (entity.AppointmentStatusId != (int)AppointmentStatusType.Pending)
+            {
                 throw new BusinessException("Only pending appointments can be confirmed.");
+            }
 
-            if (entity.StartDateTime <= DateTime.UtcNow)
-                throw new BusinessException("Past appointments cannot be confirmed.");
+            var now = DateTime.UtcNow;
 
-            entity.AppointmentStatusId = (int)Model.Enum.AppointmentStatusType.Confirmed;
+            if (now < entity.StartDateTime)
+            {
+                throw new BusinessException(
+                    "Client arrival cannot be confirmed before the appointment starts.");
+            }
 
-            entity.ConfirmedAt = DateTime.UtcNow;
+            if (now > entity.EndDateTime)
+            {
+                throw new BusinessException("Client arrival cannot be confirmed after the appointment ends.");
+            }
+
+            entity.AppointmentStatusId = (int)AppointmentStatusType.Confirmed;
+
+            entity.ConfirmedAt = now;
             entity.ConfirmedById = _currentUserService.UserId;
 
             entity.CancelledAt = null;
@@ -596,8 +670,11 @@ namespace BarberMe.Services.Services
                 {
                     UserId = entity.ClientId,
                     NotificationTypeId = NotificationTypeEnum.Reservation,
-                    Title = "Appointment confirmed",
-                    Text = $"Your appointment on {entity.StartDateTime:dd.MM.yyyy HH:mm} has been confirmed.",
+                    Title = "Arrival confirmed",
+                    Text =
+                        $"Your arrival for the appointment on " +
+                        $"{entity.StartDateTime:dd.MM.yyyy HH:mm} " +
+                        $"has been confirmed.",
                     EventType = "AppointmentConfirmed",
                     CreatedAt = DateTime.UtcNow
                 });
@@ -725,10 +802,10 @@ namespace BarberMe.Services.Services
                     "Only a pending appointment can be marked as no-show.");
             }
 
-            if (appointment.StartDateTime > DateTime.UtcNow)
+            if (appointment.EndDateTime > DateTime.UtcNow)
             {
                 throw new BusinessException(
-                    "A future appointment cannot be marked as no-show.");
+                    "An appointment cannot be marked as no-show before it ends.");
             }
 
             appointment.AppointmentStatusId =

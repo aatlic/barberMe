@@ -11,24 +11,40 @@ namespace BarberMe.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = Roles.Admin)]
+    [Authorize]
     public class WorkingHoursController : ControllerBase
     {
         private readonly IWorkingHoursService _service;
+        private readonly ICurrentUserService _currentUserService;
 
-        public WorkingHoursController(IWorkingHoursService service)
+        public WorkingHoursController(
+            IWorkingHoursService service,
+            ICurrentUserService currentUserService)
         {
             _service = service;
+            _currentUserService = currentUserService;
         }
 
         [HttpGet]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<PagedResponse<WorkingHoursResponse>> Get(
             [FromQuery] WorkingHoursSearchObject search)
         {
             return await _service.GetAsync(search);
         }
 
+        [HttpGet("me")]
+        [Authorize(Roles = Roles.Barber)]
+        public async Task<ActionResult<List<WorkingHoursResponse>>> GetMyWorkingHours()
+        {
+            var result = await _service.GetByBarberAsync(
+                _currentUserService.UserId);
+
+            return Ok(result);
+        }
+
         [HttpGet("{id}")]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult<WorkingHoursResponse>> GetById(int id)
         {
             var result = await _service.GetByIdAsync(id);
@@ -37,21 +53,26 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpGet("barber/{barberId}")]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult<List<WorkingHoursResponse>>> GetByBarber(int barberId)
         {
             var result = await _service.GetByBarberAsync(barberId);
+
             return Ok(result);
         }
 
         [HttpPost]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult<WorkingHoursResponse>> Insert(
             WorkingHoursInsertRequest request)
         {
             var result = await _service.InsertAsync(request);
+
             return Ok(result);
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult<WorkingHoursResponse>> Update(
             int id,
             WorkingHoursUpdateRequest request)
@@ -62,9 +83,10 @@ namespace BarberMe.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult<bool>> Delete(int id)
         {
-            var result = await _service.DeleteAsync(id);
+            await _service.DeleteAsync(id);
 
             return Ok(true);
         }

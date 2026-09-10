@@ -5,7 +5,11 @@ import '../../../models/appointment.dart';
 import '../../../models/user.dart';
 import '../../../services/appointment_service.dart';
 import '../../../services/user_service.dart';
+
 import 'booking/barber_select_service_screen.dart';
+import 'working_hours/barber_working_hours_screen.dart';
+
+import '../client/notifications_screen.dart';
 
 class BarberHomeScreen extends StatefulWidget {
   const BarberHomeScreen({
@@ -203,6 +207,22 @@ class _BarberHomeScreenState
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Notifications',
+            icon: const Icon(
+              Icons.notifications_outlined,
+            ),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      const NotificationsScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: ListView(
@@ -211,6 +231,108 @@ class _BarberHomeScreenState
             20,
           ),
           children: [
+            Card(
+              child: InkWell(
+                borderRadius:
+                    BorderRadius.circular(
+                  16,
+                ),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const BarberWorkingHoursScreen(),
+                    ),
+                  );
+                },
+                child: Padding(
+                  padding:
+                      const EdgeInsets.all(
+                    18,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration:
+                            BoxDecoration(
+                          color: AppTheme
+                              .accentColor
+                              .withValues(
+                            alpha: 0.12,
+                          ),
+                          borderRadius:
+                              BorderRadius.circular(
+                            12,
+                          ),
+                        ),
+                        child:
+                            const Icon(
+                          Icons
+                              .calendar_month_outlined,
+                          color:
+                              AppTheme
+                                  .accentColor,
+                        ),
+                      ),
+
+                      const SizedBox(
+                        width: 14,
+                      ),
+
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment:
+                              CrossAxisAlignment
+                                  .start,
+                          children: [
+                            Text(
+                              'My working hours',
+                              style:
+                                  TextStyle(
+                                fontSize:
+                                    17,
+                                fontWeight:
+                                    FontWeight
+                                        .bold,
+                              ),
+                            ),
+
+                            SizedBox(
+                              height: 4,
+                            ),
+
+                            Text(
+                              'View your weekly work schedule',
+                              style:
+                                  TextStyle(
+                                color:
+                                    AppTheme
+                                        .textSecondaryColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const Icon(
+                        Icons
+                            .chevron_right,
+                        color:
+                            AppTheme
+                                .textSecondaryColor,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(
+              height: 28,
+            ),
+
             const Text(
               'Find client',
               style: TextStyle(
@@ -527,13 +649,15 @@ class _BarberHomeScreenState
                   FilledButton.icon(
                 onPressed: () async {
                   final barber =
-                      await _userService.getCurrentUser();
+                      await _userService
+                          .getCurrentUser();
 
                   if (!mounted) return;
 
                   final created =
-                      await Navigator.of(context)
-                          .push<bool>(
+                      await Navigator.of(
+                    context,
+                  ).push<bool>(
                     MaterialPageRoute(
                       builder: (_) =>
                           BarberSelectServiceScreen(

@@ -27,6 +27,10 @@
         public string? CancellationReason { get; set; }
 
         public bool HasReview { get; set; }
+
+        public int? ReviewRating { get; set; }
+        public string? ReviewComment { get; set; }
+
         public decimal BasePrice { get; set; }
 
         public decimal AppliedDiscountPercent { get; set; }
