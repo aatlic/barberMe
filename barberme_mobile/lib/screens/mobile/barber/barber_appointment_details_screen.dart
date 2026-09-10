@@ -124,10 +124,10 @@ class _BarberAppointmentDetailsScreenState
             size: 44,
           ),
           title: const Text(
-            'Confirm appointment?',
+            'Confirm client arrival?',
           ),
           content: const Text(
-            'This appointment will be marked as confirmed.',
+            'Confirm that the client has arrived for this appointment.',
           ),
           actions: [
             TextButton(
@@ -157,7 +157,7 @@ class _BarberAppointmentDetailsScreenState
       () => _appointmentService.confirmAppointment(
         widget.appointmentId,
       ),
-      'Appointment confirmed successfully.',
+      'Client arrival confirmed successfully.',
     );
   }
 
@@ -372,15 +372,20 @@ class _BarberAppointmentDetailsScreenState
   bool _canConfirm(
     Appointment appointment,
   ) {
+    final now = DateTime.now();
+
     return appointment.status.toLowerCase() == 'pending' &&
-        appointment.startDateTime.isAfter(DateTime.now());
+        !now.isBefore(appointment.startDateTime) &&
+        !now.isAfter(appointment.endDateTime);
   }
 
   bool _canNoShow(
     Appointment appointment,
   ) {
+    final now = DateTime.now();
+
     return appointment.status.toLowerCase() == 'pending' &&
-        !appointment.startDateTime.isAfter(DateTime.now());
+        now.isAfter(appointment.endDateTime);
   }
 
   bool _canComplete(
@@ -879,7 +884,7 @@ class _BarberAppointmentDetailsScreenState
                 Icons.check_circle_outline,
               ),
               label: const Text(
-                'Confirm appointment',
+                'Confirm arrival',
               ),
             ),
           ),

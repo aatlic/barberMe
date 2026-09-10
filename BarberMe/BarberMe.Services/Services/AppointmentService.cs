@@ -636,15 +636,27 @@ namespace BarberMe.Services.Services
 
             ValidateAppointmentManagementAccess(entity);
 
-            if (entity.AppointmentStatusId != (int)Model.Enum.AppointmentStatusType.Pending)
+            if (entity.AppointmentStatusId != (int)AppointmentStatusType.Pending)
+            {
                 throw new BusinessException("Only pending appointments can be confirmed.");
+            }
 
-            if (entity.StartDateTime <= DateTime.UtcNow)
-                throw new BusinessException("Past appointments cannot be confirmed.");
+            var now = DateTime.UtcNow;
 
-            entity.AppointmentStatusId = (int)Model.Enum.AppointmentStatusType.Confirmed;
+            if (now < entity.StartDateTime)
+            {
+                throw new BusinessException(
+                    "Client arrival cannot be confirmed before the appointment starts.");
+            }
 
-            entity.ConfirmedAt = DateTime.UtcNow;
+            if (now > entity.EndDateTime)
+            {
+                throw new BusinessException("Client arrival cannot be confirmed after the appointment ends.");
+            }
+
+            entity.AppointmentStatusId = (int)AppointmentStatusType.Confirmed;
+
+            entity.ConfirmedAt = now;
             entity.ConfirmedById = _currentUserService.UserId;
 
             entity.CancelledAt = null;
@@ -658,8 +670,11 @@ namespace BarberMe.Services.Services
                 {
                     UserId = entity.ClientId,
                     NotificationTypeId = NotificationTypeEnum.Reservation,
-                    Title = "Appointment confirmed",
-                    Text = $"Your appointment on {entity.StartDateTime:dd.MM.yyyy HH:mm} has been confirmed.",
+                    Title = "Arrival confirmed",
+                    Text =
+                        $"Your arrival for the appointment on " +
+                        $"{entity.StartDateTime:dd.MM.yyyy HH:mm} " +
+                        $"has been confirmed.",
                     EventType = "AppointmentConfirmed",
                     CreatedAt = DateTime.UtcNow
                 });
@@ -787,10 +802,10 @@ namespace BarberMe.Services.Services
                     "Only a pending appointment can be marked as no-show.");
             }
 
-            if (appointment.StartDateTime > DateTime.UtcNow)
+            if (appointment.EndDateTime > DateTime.UtcNow)
             {
                 throw new BusinessException(
-                    "A future appointment cannot be marked as no-show.");
+                    "An appointment cannot be marked as no-show before it ends.");
             }
 
             appointment.AppointmentStatusId =
