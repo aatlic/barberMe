@@ -314,32 +314,34 @@ class _LoginScreenState
                         ),
                       ),
 
-                      const Text(
-                        '•',
-                        style: TextStyle(
-                          color: Colors.grey,
+                      if (Platform.isAndroid)...[
+                        const Text(
+                          '•',
+                          style: TextStyle(
+                            color: Colors.grey,
+                          ),
                         ),
-                      ),
 
-                      TextButton.icon(
-                        onPressed: _isLoading
-                            ? null
-                            : () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const ContactSupportScreen(),
-                                  ),
-                                );
-                              },
-                        icon: const Icon(
-                          Icons.support_agent_outlined,
-                          size: 18,
+                        TextButton.icon(
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const ContactSupportScreen(),
+                                    ),
+                                  );
+                                },
+                          icon: const Icon(
+                            Icons.support_agent_outlined,
+                            size: 18,
+                          ),
+                          label: const Text(
+                            'Contact support',
+                          ),
                         ),
-                        label: const Text(
-                          'Contact support',
-                        ),
-                      ),
+                      ],
                     ],
                   ),
 

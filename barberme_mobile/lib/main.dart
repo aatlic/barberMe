@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
@@ -10,19 +12,21 @@ Future<void> main() async {
 
   await dotenv.load(fileName: '.env');
 
-  final stripePublishableKey =
-      dotenv.env['STRIPE_PUBLISHABLE_KEY'];
+  if (Platform.isAndroid || Platform.isIOS) {
+    final stripePublishableKey =
+        dotenv.env['STRIPE_PUBLISHABLE_KEY'];
 
-  if (stripePublishableKey == null ||
-      stripePublishableKey.isEmpty) {
-    throw Exception(
-      'STRIPE_PUBLISHABLE_KEY is missing from .env.',
-    );
+    if (stripePublishableKey == null ||
+        stripePublishableKey.isEmpty) {
+      throw Exception(
+        'STRIPE_PUBLISHABLE_KEY is missing from .env.',
+      );
+    }
+
+    Stripe.publishableKey = stripePublishableKey;
+
+    await Stripe.instance.applySettings();
   }
-
-  Stripe.publishableKey = stripePublishableKey;
-
-  await Stripe.instance.applySettings();
 
   runApp(const BarberMeApp());
 }
