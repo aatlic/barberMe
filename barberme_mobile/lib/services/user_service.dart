@@ -326,4 +326,340 @@ class UserService {
       ),
     );
   }
+
+  Future<PagedResponse<User>> getUsers({
+    String? fts,
+    int? roleId,
+    int page = 1,
+    int pageSize = 10,
+  }) async {
+    final token = await _storage.read(
+      key: 'jwt_token',
+    );
+
+    final queryParameters = <String, String>{
+      'page': page.toString(),
+      'pageSize': pageSize.toString(),
+    };
+
+    if (fts != null && fts.trim().isNotEmpty) {
+      queryParameters['fts'] = fts.trim();
+    }
+
+    if (roleId != null) {
+      queryParameters['roleId'] = roleId.toString();
+    }
+
+    final uri = Uri.parse(
+      '${ApiConfig.baseUrl}/api/Users',
+    ).replace(
+      queryParameters: queryParameters,
+    );
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      final data =
+          jsonDecode(response.body)
+              as Map<String, dynamic>;
+
+      return PagedResponse<User>.fromJson(
+        data,
+        User.fromJson,
+      );
+    }
+
+    throw Exception(
+      _getErrorMessage(
+        response.body,
+        'Failed to load users.',
+      ),
+    );
+  }
+
+  Future<void> lockUser(int userId) async {
+    await _putUserAction(
+      userId: userId,
+      action: 'lock',
+      fallback: 'Failed to lock user.',
+    );
+  }
+
+  Future<void> unlockUser(int userId) async {
+    await _putUserAction(
+      userId: userId,
+      action: 'unlock',
+      fallback: 'Failed to unlock user.',
+    );
+  }
+
+  Future<void> activateUser(int userId) async {
+    await _putUserAction(
+      userId: userId,
+      action: 'activate',
+      fallback: 'Failed to activate user.',
+    );
+  }
+
+  Future<void> deactivateUser(int userId) async {
+    await _putUserAction(
+      userId: userId,
+      action: 'deactivate',
+      fallback: 'Failed to deactivate user.',
+    );
+  }
+
+  Future<String> generatePassword() async {
+    final token = await _storage.read(
+      key: 'jwt_token',
+    );
+
+    final response = await http.get(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/api/Users/generate-password',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      final data =
+          jsonDecode(response.body)
+              as Map<String, dynamic>;
+
+      return data['password'].toString();
+    }
+
+    throw Exception(
+      _getErrorMessage(
+        response.body,
+        'Failed to generate password.',
+      ),
+    );
+  }
+
+  Future<User> createUser({
+    required String firstName,
+    required String lastName,
+    required String username,
+    required String email,
+    required String phoneNumber,
+    required String password,
+    required int roleId,
+    int? barberLevelId,
+    bool requirePasswordChange = true,
+    bool receiveNewsletter = false,
+  }) async {
+    final token = await _storage.read(
+      key: 'jwt_token',
+    );
+
+    final response = await http.post(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/api/Users',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'firstName': firstName.trim(),
+        'lastName': lastName.trim(),
+        'username': username.trim(),
+        'email': email.trim(),
+        'phoneNumber': phoneNumber.trim(),
+        'password': password,
+        'roleId': roleId,
+        'barberLevelId': barberLevelId,
+        'requirePasswordChange':
+            requirePasswordChange,
+        'receiveNewsletter':
+            receiveNewsletter,
+      }),
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      final data =
+          jsonDecode(response.body)
+              as Map<String, dynamic>;
+
+      return User.fromJson(data);
+    }
+
+    throw Exception(
+      _getErrorMessage(
+        response.body,
+        'Failed to create user.',
+      ),
+    );
+  }
+
+  Future<User> updateUser({
+    required int userId,
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String phoneNumber,
+    int? barberLevelId,
+    required bool isActive,
+  }) async {
+    final token = await _storage.read(
+      key: 'jwt_token',
+    );
+
+    final response = await http.put(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/api/Users/$userId',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'firstName': firstName.trim(),
+        'lastName': lastName.trim(),
+        'email': email.trim(),
+        'phoneNumber': phoneNumber.trim(),
+        'barberLevelId': barberLevelId,
+        'isActive': isActive,
+      }),
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      final data =
+          jsonDecode(response.body)
+              as Map<String, dynamic>;
+
+      return User.fromJson(data);
+    }
+
+    throw Exception(
+      _getErrorMessage(
+        response.body,
+        'Failed to update user.',
+      ),
+    );
+  }
+
+  Future<void> deleteUser(int userId) async {
+    final token = await _storage.read(
+      key: 'jwt_token',
+    );
+
+    final response = await http.delete(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/api/Users/$userId',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      return;
+    }
+
+    throw Exception(
+      _getErrorMessage(
+        response.body,
+        'Failed to delete user.',
+      ),
+    );
+  }
+
+  Future<User> copyEmployee({
+    required int sourceEmployeeId,
+    required String firstName,
+    required String lastName,
+    required String username,
+    required String email,
+    required String phoneNumber,
+    required String password,
+    required bool requirePasswordChange,
+    required bool copyServices,
+  }) async {
+    final token = await _storage.read(
+      key: 'jwt_token',
+    );
+
+    final response = await http.post(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/api/Users/$sourceEmployeeId/copy',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'firstName': firstName.trim(),
+        'lastName': lastName.trim(),
+        'username': username.trim(),
+        'email': email.trim(),
+        'phoneNumber': phoneNumber.trim(),
+        'password': password,
+        'requirePasswordChange':
+            requirePasswordChange,
+        'copyServices': copyServices,
+      }),
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      final data =
+          jsonDecode(response.body)
+              as Map<String, dynamic>;
+
+      return User.fromJson(data);
+    }
+
+    throw Exception(
+      _getErrorMessage(
+        response.body,
+        'Failed to copy employee.',
+      ),
+    );
+  }
+
+  Future<void> _putUserAction({
+    required int userId,
+    required String action,
+    required String fallback,
+  }) async {
+    final token = await _storage.read(
+      key: 'jwt_token',
+    );
+
+    final response = await http.put(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/api/Users/$userId/$action',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      return;
+    }
+
+    throw Exception(
+      _getErrorMessage(
+        response.body,
+        fallback,
+      ),
+    );
+  }
 }
