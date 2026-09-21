@@ -522,7 +522,7 @@ class _AddUserDialogState
 
   Widget _buildRoleField() {
     return DropdownButtonFormField<int>(
-      value: _selectedRoleId,
+      initialValue: _selectedRoleId,
       decoration: const InputDecoration(
         labelText: 'Role',
         prefixIcon: Icon(
@@ -564,7 +564,7 @@ class _AddUserDialogState
 
   Widget _buildBarberLevelField() {
     return DropdownButtonFormField<int>(
-      value: _selectedBarberLevelId,
+      initialValue: _selectedBarberLevelId,
       decoration: const InputDecoration(
         labelText: 'Barber level',
         prefixIcon: Icon(

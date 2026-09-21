@@ -245,19 +245,76 @@ namespace BarberMe.Services.Services
 
         public async Task<bool> DeleteAsync(int id)
         {
-            var entity = await _context.Services.FindAsync(id);
+            var entity = await _context.Services
+                .FirstOrDefaultAsync(x => x.ServiceId == id);
 
             if (entity == null)
                 throw new NotFoundException("Service does not exist.");
 
+            var hasBarberServices = await _context.BarberServices
+                .AnyAsync(x => x.ServiceId == id);
+
+            if (hasBarberServices)
+                throw new BusinessException(
+                    "This service cannot be deleted because it is assigned to one or more barbers. Deactivate it instead.");
+
+            _context.Services.Remove(entity);
+
+            await _context.SaveChangesAsync();
+
+            _cache.Remove(ServicesCacheKey);
+
+            return true;
+        }
+
+        public async Task<bool> ActivateAsync(int id)
+        {
+            var entity = await _context.Services
+                .FirstOrDefaultAsync(x => x.ServiceId == id);
+
+            if (entity == null)
+            {
+                throw new NotFoundException("Service not found.");
+            }
+
+            if (entity.IsActive)
+            {
+                throw new BusinessException(
+                    "Service is already active."
+                );
+            }
+
+            entity.IsActive = true;
+
+            await _context.SaveChangesAsync();
+
+            _cache.Remove("services");
+
+            return true;
+        }
+
+        public async Task<bool> DeactivateAsync(int id)
+        {
+            var entity = await _context.Services
+                .FirstOrDefaultAsync(x => x.ServiceId == id);
+
+            if (entity == null)
+            {
+                throw new NotFoundException("Service not found.");
+            }
+
             if (!entity.IsActive)
-                throw new BusinessException("Service is already inactive.");
+            {
+                throw new BusinessException(
+                    "Service is already inactive."
+                );
+            }
 
             entity.IsActive = false;
 
             await _context.SaveChangesAsync();
 
-            _cache.Remove(ServicesCacheKey);
+            _cache.Remove("services");
 
             return true;
         }

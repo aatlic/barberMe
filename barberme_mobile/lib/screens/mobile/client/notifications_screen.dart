@@ -474,7 +474,7 @@ class _NotificationsScreenState
                 (hasMore ? 1 : 0),
         separatorBuilder: (
           _,
-          __,
+          _,
         ) =>
             const SizedBox(
           height: 10,

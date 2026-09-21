@@ -124,7 +124,7 @@ class _SelectBarberScreenState
       child: ListView.separated(
         padding: const EdgeInsets.all(20),
         itemCount: _barbers.length,
-        separatorBuilder: (_, __) =>
+        separatorBuilder: (_, _) =>
             const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final barber = _barbers[index];

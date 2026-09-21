@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../models/paged_response.dart';
 import '../../../models/user.dart';
 import '../../../services/user_service.dart';
 import '../../../core/config/api_config.dart';
@@ -631,7 +630,7 @@ class _AdminUsersScreenState
           SizedBox(
             width: 200,
             child: DropdownButtonFormField<int?>(
-              value: _selectedRoleId,
+              initialValue: _selectedRoleId,
               decoration:
                   const InputDecoration(
                 labelText: 'Role',

@@ -518,7 +518,7 @@ class _CopyEmployeeDialogState
     }
 
     return DropdownButtonFormField<User>(
-      value: _selectedBarber,
+      initialValue: _selectedBarber,
       decoration:
           const InputDecoration(
         labelText: 'Source employee',

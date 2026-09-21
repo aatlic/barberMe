@@ -160,7 +160,7 @@ class _SelectServiceScreenState
       child: ListView.separated(
         padding: const EdgeInsets.all(20),
         itemCount: _services.length,
-        separatorBuilder: (_, __) =>
+        separatorBuilder: (_, _) =>
             const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final service = _services[index];

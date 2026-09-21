@@ -506,7 +506,7 @@ class _EditUserDialogState
 
   Widget _buildBarberLevelField() {
     return DropdownButtonFormField<int>(
-      value: _selectedBarberLevelId,
+      initialValue: _selectedBarberLevelId,
       decoration:
           const InputDecoration(
         labelText: 'Barber level',

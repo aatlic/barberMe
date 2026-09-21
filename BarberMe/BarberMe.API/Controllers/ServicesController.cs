@@ -57,5 +57,19 @@ namespace BarberMe.API.Controllers
 
             return Ok(true);
         }
+
+        [HttpPut("{id}/activate")]
+        public async Task<ActionResult<bool>> Activate(int id)
+        {
+            await _service.ActivateAsync(id);
+            return Ok(true);
+        }
+
+        [HttpPut("{id}/deactivate")]
+        public async Task<ActionResult<bool>> Deactivate(int id)
+        {
+            await _service.DeactivateAsync(id);
+            return Ok(true);
+        }
     }
 }

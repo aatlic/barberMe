@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 
 import '../desktop/admin/admin_home_screen.dart';
-import '../mobile/barber/barber_home_screen.dart';
 import '../mobile/client/client_main_screen.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';

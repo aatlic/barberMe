@@ -362,7 +362,7 @@ class _RecommendationsScreenState
             _recommendations.length,
         separatorBuilder: (
           _,
-          __,
+          _,
         ) =>
             const SizedBox(
           height: 14,

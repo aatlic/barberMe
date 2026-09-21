@@ -190,7 +190,7 @@ class _BarberSelectServiceScreenState
         itemCount:
             _services.length,
         separatorBuilder:
-            (_, __) =>
+            (_, _) =>
                 const SizedBox(
           height: 12,
         ),
