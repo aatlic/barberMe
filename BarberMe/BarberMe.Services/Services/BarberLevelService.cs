@@ -156,10 +156,59 @@ namespace BarberMe.Services.Services
                 .FirstOrDefaultAsync(x => x.BarberLevelId == id);
 
             if (entity == null)
-                throw new NotFoundException("Barber level does not exist.");
+                throw new NotFoundException(
+                    "Barber level does not exist.");
+
+            var isInUse = await _context.Users
+                .AnyAsync(x => x.BarberLevelId == id);
+
+            if (isInUse)
+                throw new BusinessException(
+                    "This barber level cannot be deleted because it is assigned to one or more barbers. Deactivate it instead.");
+
+            _context.BarberLevels.Remove(entity);
+
+            await _context.SaveChangesAsync();
+
+            _cache.Remove(BarberLevelsCacheKey);
+
+            return true;
+        }
+
+        public async Task<bool> ActivateAsync(int id)
+        {
+            var entity = await _context.BarberLevels
+                .FirstOrDefaultAsync(x => x.BarberLevelId == id);
+
+            if (entity == null)
+                throw new NotFoundException(
+                    "Barber level does not exist.");
+
+            if (entity.IsActive)
+                throw new BusinessException(
+                    "Barber level is already active.");
+
+            entity.IsActive = true;
+
+            await _context.SaveChangesAsync();
+
+            _cache.Remove(BarberLevelsCacheKey);
+
+            return true;
+        }
+
+        public async Task<bool> DeactivateAsync(int id)
+        {
+            var entity = await _context.BarberLevels
+                .FirstOrDefaultAsync(x => x.BarberLevelId == id);
+
+            if (entity == null)
+                throw new NotFoundException(
+                    "Barber level does not exist.");
 
             if (!entity.IsActive)
-                throw new BusinessException("Barber level is already inactive.");
+                throw new BusinessException(
+                    "Barber level is already inactive.");
 
             entity.IsActive = false;
 

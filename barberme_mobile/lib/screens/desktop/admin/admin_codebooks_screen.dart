@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
 import 'admin_services_screen.dart';
+import 'admin_barber_levels_screen.dart';
 
 class AdminCodebooksScreen extends StatelessWidget {
   const AdminCodebooksScreen({
@@ -96,8 +97,12 @@ class AdminCodebooksScreen extends StatelessWidget {
                             icon:
                                 Icons.workspace_premium_outlined,
                             onTap: () {
-                              // Later:
-                              // Barber Levels screen.
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const AdminBarberLevelsScreen(),
+                                ),
+                              );
                             },
                           ),
                         ),
