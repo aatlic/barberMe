@@ -11,5 +11,7 @@ namespace BarberMe.Services.Interfaces
                     BarberLevelInsertRequest,
                     BarberLevelUpdateRequest>
     {
+        Task<bool> ActivateAsync(int id);
+        Task<bool> DeactivateAsync(int id);
     }
 }

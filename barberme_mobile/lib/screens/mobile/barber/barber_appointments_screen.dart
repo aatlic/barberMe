@@ -464,7 +464,7 @@ class _BarberAppointmentsScreenState
         itemCount:
             _appointments.length,
         separatorBuilder:
-            (_, __) =>
+            (_, _) =>
                 const SizedBox(
           height: 12,
         ),
@@ -1011,7 +1011,7 @@ class _AppointmentFilterSheetState
                               itemCount:
                                   _clients.length,
                               separatorBuilder:
-                                  (_, __) =>
+                                  (_, _) =>
                                       const Divider(
                                 height:
                                     1,
@@ -1117,7 +1117,7 @@ class _AppointmentFilterSheetState
                       else
                         DropdownButtonFormField<
                             BarberService>(
-                          value:
+                          initialValue:
                               _selectedService,
                           isExpanded:
                               true,

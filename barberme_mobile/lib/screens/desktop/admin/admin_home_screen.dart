@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../services/auth_service.dart';
 import '../../auth/login_screen.dart';
 import 'admin_users_screen.dart';
+import 'admin_codebooks_screen.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -37,9 +38,9 @@ class _AdminHomeScreenState
       selectedIcon: Icons.content_cut,
     ),
     _AdminMenuItem(
-      title: 'Services',
-      icon: Icons.design_services_outlined,
-      selectedIcon: Icons.design_services,
+      title: 'Codebooks',
+      icon: Icons.menu_book_outlined,
+      selectedIcon: Icons.menu_book,
     ),
     _AdminMenuItem(
       title: 'Appointments',
@@ -151,7 +152,7 @@ class _AdminHomeScreenState
                   vertical: 8,
                 ),
                 itemCount: _menuItems.length,
-                separatorBuilder: (_, __) =>
+                separatorBuilder: (_, _) =>
                     const SizedBox(height: 4),
                 itemBuilder: (context, index) {
                   return _buildMenuItem(
@@ -349,6 +350,9 @@ class _AdminHomeScreenState
       case 1:
         return const AdminUsersScreen();
 
+      case 3:
+        return const AdminCodebooksScreen();
+
       default:
         return _buildPlaceholder(
           _menuItems[_selectedIndex],
@@ -502,7 +506,7 @@ class _AdminHomeScreenState
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  'Use the administration panel to manage users, barbers, services, appointments and other system data.',
+                  'Use the administration panel to manage users, barbers, codebooks, appointments and other system data.',
                   style: TextStyle(
                     color: Color(0xFFD0D0D0),
                     fontSize: 14,
@@ -571,10 +575,10 @@ class _AdminHomeScreenState
         menuIndex: 2,
       ),
       const _QuickAccessItem(
-        title: 'Services',
+        title: 'Codebooks',
         subtitle:
-            'Manage salon services',
-        icon: Icons.design_services_outlined,
+            'Manage salon configuration',
+        icon: Icons.menu_book_outlined,
         menuIndex: 3,
       ),
       const _QuickAccessItem(
