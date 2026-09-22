@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import 'admin_services_screen.dart';
 import 'admin_barber_levels_screen.dart';
+import 'admin_company_information_screen.dart';
 
 class AdminCodebooksScreen extends StatelessWidget {
   const AdminCodebooksScreen({
@@ -116,8 +117,12 @@ class AdminCodebooksScreen extends StatelessWidget {
                             icon:
                                 Icons.business_outlined,
                             onTap: () {
-                              // Later:
-                              // Company Information screen.
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const AdminCompanyInformationScreen(),
+                                ),
+                              );
                             },
                           ),
                         ),
