@@ -6,8 +6,9 @@ class BarberService {
   final String serviceName;
   final double price;
   final int durationMinutes;
+  final bool isActive;
 
-  BarberService({
+  const BarberService({
     required this.id,
     required this.barberId,
     required this.barberFullName,
@@ -15,17 +16,26 @@ class BarberService {
     required this.serviceName,
     required this.price,
     required this.durationMinutes,
+    required this.isActive,
   });
 
-  factory BarberService.fromJson(Map<String, dynamic> json) {
+  factory BarberService.fromJson(
+    Map<String, dynamic> json,
+  ) {
     return BarberService(
       id: json['id'] as int,
       barberId: json['barberId'] as int,
-      barberFullName: json['barberFullName'] as String,
+      barberFullName:
+          json['barberFullName']?.toString() ?? '',
       serviceId: json['serviceId'] as int,
-      serviceName: json['serviceName'] as String,
-      price: (json['price'] as num).toDouble(),
-      durationMinutes: json['durationMinutes'] as int,
+      serviceName:
+          json['serviceName']?.toString() ?? '',
+      price:
+          (json['price'] as num).toDouble(),
+      durationMinutes:
+          json['durationMinutes'] as int,
+      isActive:
+          json['isActive'] as bool? ?? false,
     );
   }
 }

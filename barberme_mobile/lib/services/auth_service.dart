@@ -190,4 +190,39 @@ class AuthService {
       ),
     );
   }
+
+  Future<User> getMe() async {
+    final token = await _storage.read(
+      key: 'jwt_token',
+    );
+
+    if (token == null || token.isEmpty) {
+      throw Exception('Authentication token is missing.');
+    }
+
+    final response = await http.get(
+      Uri.parse(
+        '${ApiConfig.baseUrl}/api/Users/me',
+      ),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      final data =
+          jsonDecode(response.body)
+              as Map<String, dynamic>;
+
+      return User.fromJson(data);
+    }
+
+    throw Exception(
+      _getErrorMessage(
+        response.body,
+        'Failed to load user profile.',
+      ),
+    );
+  }
 }

@@ -19,7 +19,11 @@ namespace BarberMe.Database.EntityConfigurations
                 .HasForeignKey(x => x.BarberId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasIndex(x => new { x.BarberId, x.DayOfWeek }).IsUnique();
+            builder.HasIndex(x => new
+            {
+                x.BarberId,
+                x.DayOfWeek
+            });
 
             builder.HasData(
 

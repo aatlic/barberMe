@@ -114,7 +114,15 @@ namespace BarberMe.Services.Services
             _context.WorkingHours.Add(entity);
             await _context.SaveChangesAsync();
 
-            return _mapper.Map<WorkingHoursResponse>(entity);
+            var createdEntity = await _context.WorkingHours
+                .AsNoTracking()
+                .Include(x => x.Barber)
+                .FirstAsync(
+                    x => x.WorkingHoursId ==
+                         entity.WorkingHoursId);
+
+            return _mapper.Map<WorkingHoursResponse>(
+                createdEntity);
         }
 
         public async Task<WorkingHoursResponse?> UpdateAsync(int id, WorkingHoursUpdateRequest request)
@@ -149,7 +157,14 @@ namespace BarberMe.Services.Services
 
             await _context.SaveChangesAsync();
 
-            return _mapper.Map<WorkingHoursResponse>(entity);
+            var updatedEntity = await _context.WorkingHours
+                .AsNoTracking()
+                .Include(x => x.Barber)
+                .FirstAsync(
+                    x => x.WorkingHoursId == id);
+
+            return _mapper.Map<WorkingHoursResponse>(
+                updatedEntity);
         }
 
         public async Task<bool> DeleteAsync(int id)
