@@ -118,7 +118,15 @@ namespace BarberMe.Services.Services
             _context.BarberServices.Add(entity);
             await _context.SaveChangesAsync();
 
-            return _mapper.Map<BarberServiceResponse>(entity);
+            var createdEntity = await _context.BarberServices
+                .AsNoTracking()
+                .Include(x => x.Barber)
+                .Include(x => x.Service)
+                .FirstAsync(x =>
+                    x.BarberServiceId == entity.BarberServiceId);
+
+            return _mapper.Map<BarberServiceResponse>(
+                createdEntity);
         }
 
         public async Task<BarberServiceResponse?> UpdateAsync(
@@ -147,7 +155,16 @@ namespace BarberMe.Services.Services
 
             await _context.SaveChangesAsync();
 
-            return _mapper.Map<BarberServiceResponse>(entity);
+            var updatedEntity =
+                await _context.BarberServices
+                    .AsNoTracking()
+                    .Include(x => x.Barber)
+                    .Include(x => x.Service)
+                    .FirstAsync(
+                        x => x.BarberServiceId == id);
+
+            return _mapper.Map<BarberServiceResponse>(
+                updatedEntity);
         }
 
         public async Task<bool> DeleteAsync(int id)

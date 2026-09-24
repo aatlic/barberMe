@@ -330,6 +330,8 @@ class UserService {
   Future<PagedResponse<User>> getUsers({
     String? fts,
     int? roleId,
+    bool? isActive,
+    int? barberLevelId,
     int page = 1,
     int pageSize = 10,
   }) async {
@@ -348,6 +350,15 @@ class UserService {
 
     if (roleId != null) {
       queryParameters['roleId'] = roleId.toString();
+    }
+
+    if (isActive != null) {
+      queryParameters['isActive'] = isActive.toString();
+    }
+
+    if (barberLevelId != null) {
+      queryParameters['barberLevelId'] =
+          barberLevelId.toString();
     }
 
     final uri = Uri.parse(

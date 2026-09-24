@@ -5,6 +5,9 @@ import '../../../services/auth_service.dart';
 import '../../auth/login_screen.dart';
 import 'admin_users_screen.dart';
 import 'admin_codebooks_screen.dart';
+import '../../../core/config/api_config.dart';
+import '../../../models/user.dart';
+import 'admin_barbers_screen.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -14,12 +17,36 @@ class AdminHomeScreen extends StatefulWidget {
       _AdminHomeScreenState();
 }
 
-class _AdminHomeScreenState
-    extends State<AdminHomeScreen> {
+class _AdminHomeScreenState extends State<AdminHomeScreen> {
   final AuthService _authService = AuthService();
+
+  User? _currentUser;
 
   int _selectedIndex = 0;
   bool _isLoggingOut = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    try {
+      final user = await _authService.getMe();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _currentUser = user;
+      });
+    } catch (_) {
+      // The admin panel can still be used if
+      // profile information cannot be loaded.
+    }
+  }
 
   final List<_AdminMenuItem> _menuItems = const [
     _AdminMenuItem(
@@ -41,16 +68,6 @@ class _AdminHomeScreenState
       title: 'Codebooks',
       icon: Icons.menu_book_outlined,
       selectedIcon: Icons.menu_book,
-    ),
-    _AdminMenuItem(
-      title: 'Appointments',
-      icon: Icons.calendar_month_outlined,
-      selectedIcon: Icons.calendar_month,
-    ),
-    _AdminMenuItem(
-      title: 'Working Hours',
-      icon: Icons.schedule_outlined,
-      selectedIcon: Icons.schedule,
     ),
     _AdminMenuItem(
       title: 'Reports',
@@ -194,8 +211,7 @@ class _AdminHomeScreenState
           const SizedBox(width: 12),
           const Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Barber Me',
@@ -224,8 +240,7 @@ class _AdminHomeScreenState
     required _AdminMenuItem item,
     required int index,
   }) {
-    final isSelected =
-        _selectedIndex == index;
+    final isSelected = _selectedIndex == index;
 
     return Material(
       color: Colors.transparent,
@@ -237,8 +252,7 @@ class _AdminHomeScreenState
         },
         borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
-          duration:
-              const Duration(milliseconds: 180),
+          duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 13,
@@ -247,8 +261,7 @@ class _AdminHomeScreenState
             color: isSelected
                 ? AppTheme.accentColor
                 : Colors.transparent,
-            borderRadius:
-                BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             children: [
@@ -268,9 +281,7 @@ class _AdminHomeScreenState
                   style: TextStyle(
                     color: isSelected
                         ? Colors.white
-                        : const Color(
-                            0xFFE0E0E0,
-                          ),
+                        : const Color(0xFFE0E0E0),
                     fontSize: 14,
                     fontWeight: isSelected
                         ? FontWeight.w600
@@ -296,10 +307,8 @@ class _AdminHomeScreenState
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap:
-              _isLoggingOut ? null : _logout,
-          borderRadius:
-              BorderRadius.circular(12),
+          onTap: _isLoggingOut ? null : _logout,
+          borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: 16,
@@ -311,16 +320,14 @@ class _AdminHomeScreenState
                     ? const SizedBox(
                         width: 21,
                         height: 21,
-                        child:
-                            CircularProgressIndicator(
+                        child: CircularProgressIndicator(
                           strokeWidth: 2,
                           color: Colors.white,
                         ),
                       )
                     : const Icon(
                         Icons.logout,
-                        color:
-                            Color(0xFFC8C8C8),
+                        color: Color(0xFFC8C8C8),
                         size: 21,
                       ),
                 const SizedBox(width: 14),
@@ -350,6 +357,9 @@ class _AdminHomeScreenState
       case 1:
         return const AdminUsersScreen();
 
+      case 2:
+        return const AdminBarbersScreen();
+
       case 3:
         return const AdminCodebooksScreen();
 
@@ -371,8 +381,7 @@ class _AdminHomeScreenState
               maxWidth: 1250,
             ),
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildPageHeader(
                   title: 'Dashboard',
@@ -387,8 +396,7 @@ class _AdminHomeScreenState
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color:
-                        AppTheme.textPrimaryColor,
+                    color: AppTheme.textPrimaryColor,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -406,21 +414,18 @@ class _AdminHomeScreenState
     required String subtitle,
   }) {
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
                 style: const TextStyle(
                   fontSize: 30,
                   fontWeight: FontWeight.w700,
-                  color:
-                      AppTheme.textPrimaryColor,
+                  color: AppTheme.textPrimaryColor,
                 ),
               ),
               const SizedBox(height: 6),
@@ -428,8 +433,7 @@ class _AdminHomeScreenState
                 subtitle,
                 style: const TextStyle(
                   fontSize: 14,
-                  color:
-                      AppTheme.textSecondaryColor,
+                  color: AppTheme.textSecondaryColor,
                 ),
               ),
             ],
@@ -442,34 +446,25 @@ class _AdminHomeScreenState
           ),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius:
-                BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color:
-                  const Color(0xFFE5E1DC),
+              color: const Color(0xFFE5E1DC),
             ),
           ),
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircleAvatar(
-                radius: 15,
-                backgroundColor:
-                    AppTheme.primaryColor,
-                child: Icon(
-                  Icons.person_outline,
-                  color: Colors.white,
-                  size: 17,
-                ),
-              ),
-              SizedBox(width: 10),
+              _buildAdminAvatar(),
+              const SizedBox(width: 10),
               Text(
-                'Administrator',
-                style: TextStyle(
+                _currentUser == null
+                    ? 'Administrator'
+                    : '${_currentUser!.firstName} '
+                        '${_currentUser!.lastName}',
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color:
-                      AppTheme.textPrimaryColor,
+                  color: AppTheme.textPrimaryColor,
                 ),
               ),
             ],
@@ -485,53 +480,30 @@ class _AdminHomeScreenState
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         color: AppTheme.primaryColor,
-        borderRadius:
-            BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
-          Expanded(
+          const Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Welcome to Barber Me',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 24,
-                    fontWeight:
-                        FontWeight.w700,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Use the administration panel to manage users, barbers, codebooks, appointments and other system data.',
+                SizedBox(height: 10),
+                Text(
+                  'Use the administration panel to manage users, '
+                  'barbers, codebooks, reports and other system data.',
                   style: TextStyle(
                     color: Color(0xFFD0D0D0),
                     fontSize: 14,
                     height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                FilledButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _selectedIndex = 4;
-                    });
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor:
-                        AppTheme.accentColor,
-                    foregroundColor:
-                        Colors.white,
-                  ),
-                  icon: const Icon(
-                    Icons.calendar_month,
-                    size: 19,
-                  ),
-                  label: const Text(
-                    'View appointments',
                   ),
                 ),
               ],
@@ -562,45 +534,27 @@ class _AdminHomeScreenState
     final items = [
       const _QuickAccessItem(
         title: 'Users',
-        subtitle:
-            'Manage system users',
+        subtitle: 'Manage system users',
         icon: Icons.people_outline,
         menuIndex: 1,
       ),
       const _QuickAccessItem(
         title: 'Barbers',
-        subtitle:
-            'Manage barber profiles',
+        subtitle: 'Manage barber profiles',
         icon: Icons.content_cut,
         menuIndex: 2,
       ),
       const _QuickAccessItem(
         title: 'Codebooks',
-        subtitle:
-            'Manage salon configuration',
+        subtitle: 'Manage salon configuration',
         icon: Icons.menu_book_outlined,
         menuIndex: 3,
       ),
       const _QuickAccessItem(
-        title: 'Appointments',
-        subtitle:
-            'Review all appointments',
-        icon: Icons.calendar_month_outlined,
-        menuIndex: 4,
-      ),
-      const _QuickAccessItem(
-        title: 'Working Hours',
-        subtitle:
-            'Manage barber schedules',
-        icon: Icons.schedule_outlined,
-        menuIndex: 5,
-      ),
-      const _QuickAccessItem(
         title: 'Reports',
-        subtitle:
-            'Generate business reports',
+        subtitle: 'Generate business reports',
         icon: Icons.bar_chart_outlined,
-        menuIndex: 6,
+        menuIndex: 4,
       ),
     ];
 
@@ -620,8 +574,7 @@ class _AdminHomeScreenState
 
         final itemWidth =
             (constraints.maxWidth -
-                    spacing *
-                        (crossAxisCount - 1)) /
+                    spacing * (crossAxisCount - 1)) /
                 crossAxisCount;
 
         return Wrap(
@@ -645,25 +598,20 @@ class _AdminHomeScreenState
   ) {
     return Material(
       color: Colors.white,
-      borderRadius:
-          BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: () {
           setState(() {
-            _selectedIndex =
-                item.menuIndex;
+            _selectedIndex = item.menuIndex;
           });
         },
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            borderRadius:
-                BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color:
-                  const Color(0xFFE5E1DC),
+              color: const Color(0xFFE5E1DC),
             ),
           ),
           child: Row(
@@ -672,36 +620,28 @@ class _AdminHomeScreenState
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: AppTheme.accentColor
-                      .withValues(
+                  color: AppTheme.accentColor.withValues(
                     alpha: 0.12,
                   ),
-                  borderRadius:
-                      BorderRadius.circular(
-                    12,
-                  ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   item.icon,
-                  color:
-                      AppTheme.accentColor,
+                  color: AppTheme.accentColor,
                   size: 24,
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       item.title,
                       style: const TextStyle(
                         fontSize: 15,
-                        fontWeight:
-                            FontWeight.w700,
-                        color: AppTheme
-                            .textPrimaryColor,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimaryColor,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -709,8 +649,7 @@ class _AdminHomeScreenState
                       item.subtitle,
                       style: const TextStyle(
                         fontSize: 12,
-                        color: AppTheme
-                            .textSecondaryColor,
+                        color: AppTheme.textSecondaryColor,
                       ),
                     ),
                   ],
@@ -739,13 +678,11 @@ class _AdminHomeScreenState
             maxWidth: 1250,
           ),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildPageHeader(
                 title: item.title,
-                subtitle:
-                    'Barber Me administration',
+                subtitle: 'Barber Me administration',
               ),
               const Expanded(
                 child: Center(
@@ -753,14 +690,62 @@ class _AdminHomeScreenState
                     'This section will be implemented next.',
                     style: TextStyle(
                       fontSize: 16,
-                      color: AppTheme
-                          .textSecondaryColor,
+                      color: AppTheme.textSecondaryColor,
                     ),
                   ),
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdminAvatar() {
+    final imagePath = _currentUser?.profileImagePath;
+
+    if (imagePath == null || imagePath.trim().isEmpty) {
+      return const CircleAvatar(
+        radius: 18,
+        backgroundColor: AppTheme.primaryColor,
+        child: Icon(
+          Icons.person_outline,
+          color: Colors.white,
+          size: 19,
+        ),
+      );
+    }
+
+    final imageUrl = imagePath.startsWith('http')
+        ? imagePath
+        : '${ApiConfig.baseUrl}/'
+            '${imagePath.replaceFirst(RegExp(r'^/+'), '')}';
+
+    return CircleAvatar(
+      radius: 18,
+      backgroundColor: AppTheme.primaryColor,
+      child: ClipOval(
+        child: Image.network(
+          imageUrl,
+          width: 36,
+          height: 36,
+          fit: BoxFit.cover,
+          errorBuilder: (
+            context,
+            error,
+            stackTrace,
+          ) {
+            return const SizedBox(
+              width: 36,
+              height: 36,
+              child: Icon(
+                Icons.person_outline,
+                color: Colors.white,
+                size: 19,
+              ),
+            );
+          },
         ),
       ),
     );
