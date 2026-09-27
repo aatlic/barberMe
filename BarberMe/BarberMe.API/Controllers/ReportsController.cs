@@ -61,5 +61,15 @@ namespace BarberMe.API.Controllers
                 "application/pdf",
                 fileName);
         }
+
+        [HttpGet("barber-performance")]
+        public async Task<ActionResult<BarberPerformanceReportResponse>> GetBarberPerformanceReport(
+        [FromQuery] ReportSearchObject search)
+        {
+            var result =
+                await _service.GetBarberPerformanceReportAsync(search);
+
+            return Ok(result);
+        }
     }
 }
