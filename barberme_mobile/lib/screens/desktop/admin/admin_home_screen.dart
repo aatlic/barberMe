@@ -8,6 +8,7 @@ import 'admin_codebooks_screen.dart';
 import '../../../core/config/api_config.dart';
 import '../../../models/user.dart';
 import 'admin_barbers_screen.dart';
+import 'admin_reports_screen.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -362,6 +363,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
       case 3:
         return const AdminCodebooksScreen();
+
+      case 4:
+        return const AdminReportsScreen();
 
       default:
         return _buildPlaceholder(
