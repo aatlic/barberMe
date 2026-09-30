@@ -9,6 +9,7 @@ import '../../../core/config/api_config.dart';
 import '../../../models/user.dart';
 import 'admin_barbers_screen.dart';
 import 'admin_reports_screen.dart';
+import 'admin_news_screen.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -366,6 +367,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
       case 4:
         return const AdminReportsScreen();
+
+      case 5:
+        return const AdminNewsScreen();
 
       default:
         return _buildPlaceholder(

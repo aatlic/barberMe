@@ -2,6 +2,7 @@
 using BarberMe.Database.Context;
 using BarberMe.Database.Models;
 using BarberMe.Model.Exceptions;
+using BarberMe.Model.Messaging;
 using BarberMe.Model.Requests.Notification;
 using BarberMe.Model.Responses;
 using BarberMe.Model.Responses.Notification;
@@ -20,19 +21,24 @@ namespace BarberMe.Services.Services
         private const string NewsCacheKey = "news";
 
         private readonly IMemoryCache _cache;
+        private readonly INewsletterPublisher _newsletterPublisher;
+
         public NewsService(
             BarberMeDbContext context,
             IMapper mapper,
-            IMemoryCache cache)
+            IMemoryCache cache,
+            INewsletterPublisher newsletterPublisher)
         {
             _context = context;
             _mapper = mapper;
             _cache = cache;
+            _newsletterPublisher = newsletterPublisher;
         }
 
         public async Task<PagedResponse<NewsResponse>> GetAsync(NewsSearchObject search)
         {
             if (string.IsNullOrWhiteSpace(search.FTS)
+                && !search.IsActive.HasValue
                 && (search.Page ?? 1) == 1
                 && (search.PageSize ?? 10) == 10)
             {
@@ -51,6 +57,12 @@ namespace BarberMe.Services.Services
                 query = query.Where(x =>
                     x.Title.Contains(search.FTS) ||
                     x.Content.Contains(search.FTS));
+            }
+
+            if (search.IsActive.HasValue)
+            {
+                query = query.Where(x =>
+                    x.IsActive == search.IsActive.Value);
             }
 
             var totalCount = await query.CountAsync();
@@ -82,6 +94,7 @@ namespace BarberMe.Services.Services
             };
 
             if (string.IsNullOrWhiteSpace(search.FTS)
+                && !search.IsActive.HasValue
                 && page == 1
                 && pageSize == 10)
             {
@@ -129,6 +142,15 @@ namespace BarberMe.Services.Services
 
             _cache.Remove(NewsCacheKey);
 
+            await _newsletterPublisher.PublishAsync(
+                new NewsletterMessage
+                {
+                    Subject = entity.Title,
+                    Body = entity.Content,
+                    EventType = "NewsCreated",
+                    CreatedAt = DateTime.UtcNow
+                });
+
             return _mapper.Map<NewsResponse>(entity);
         }
 
@@ -167,6 +189,45 @@ namespace BarberMe.Services.Services
         }
 
         public async Task<bool> DeleteAsync(int id)
+        {
+            var entity = await _context.News
+                .FirstOrDefaultAsync(x => x.NewsId == id);
+
+            if (entity == null)
+                throw new NotFoundException("News does not exist.");
+
+            ImageStorageHelper.DeleteImageIfExists(entity.Image);
+
+            _context.News.Remove(entity);
+
+            await _context.SaveChangesAsync();
+
+            _cache.Remove(NewsCacheKey);
+
+            return true;
+        }
+
+        public async Task<bool> ActivateAsync(int id)
+        {
+            var entity = await _context.News
+                .FirstOrDefaultAsync(x => x.NewsId == id);
+
+            if (entity == null)
+                throw new NotFoundException("News does not exist.");
+
+            if (entity.IsActive)
+                throw new BusinessException("News is already active.");
+
+            entity.IsActive = true;
+
+            await _context.SaveChangesAsync();
+
+            _cache.Remove(NewsCacheKey);
+
+            return true;
+        }
+
+        public async Task<bool> DeactivateAsync(int id)
         {
             var entity = await _context.News
                 .FirstOrDefaultAsync(x => x.NewsId == id);
