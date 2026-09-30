@@ -2,5 +2,6 @@
 {
     public class NewsSearchObject : BaseSearchObject
     {
+        public bool? IsActive { get; set; }
     }
 }
