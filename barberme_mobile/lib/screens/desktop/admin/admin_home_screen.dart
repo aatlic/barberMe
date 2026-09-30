@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/auth_service.dart';
 import '../../auth/login_screen.dart';
+import 'admin_support_screen.dart';
 import 'admin_users_screen.dart';
 import 'admin_codebooks_screen.dart';
 import '../../../core/config/api_config.dart';
@@ -370,6 +371,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
       case 5:
         return const AdminNewsScreen();
+      
+      case 6:
+        return const AdminSupportScreen();
 
       default:
         return _buildPlaceholder(

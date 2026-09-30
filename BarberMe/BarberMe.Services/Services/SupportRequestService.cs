@@ -141,5 +141,26 @@ namespace BarberMe.Services.Services
 
             await _context.SaveChangesAsync();
         }
+
+        public async Task SetInProgressAsync(int id)
+        {
+            var entity = await _context.SupportRequests
+                .FirstOrDefaultAsync(x => x.SupportRequestId == id);
+
+            if (entity == null)
+                throw new NotFoundException("Support request does not exist.");
+
+            if (entity.Status == SupportRequestStatus.Closed)
+                throw new BusinessException(
+                    "Closed support request cannot be moved to in progress.");
+
+            if (entity.Status == SupportRequestStatus.InProgress)
+                throw new BusinessException(
+                    "Support request is already in progress.");
+
+            entity.Status = SupportRequestStatus.InProgress;
+
+            await _context.SaveChangesAsync();
+        }
     }
 }
