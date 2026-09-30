@@ -504,16 +504,6 @@ class _AdminBarbersScreenState
     );
   }
 
-  void _showComingSoon(
-    String message,
-  ) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
-    );
-  }
-
   String? _getProfileImageUrl(
     User barber,
   ) {

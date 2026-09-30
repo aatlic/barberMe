@@ -45,6 +45,14 @@ namespace BarberMe.API.Controllers
             return Ok(result);
         }
 
+        [HttpPut("{id}/in-progress")]
+        public async Task<IActionResult> SetInProgress(int id)
+        {
+            await _service.SetInProgressAsync(id);
+
+            return Ok();
+        }
+
         [HttpPut("{id}/resolve")]
         public async Task<IActionResult> Resolve(int id)
         {

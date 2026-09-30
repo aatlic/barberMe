@@ -12,5 +12,7 @@ namespace BarberMe.Services.Interfaces
         Task<SupportRequestResponse> InsertAsync(SupportRequestInsertRequest request);
 
         Task ResolveAsync(int id);
+
+        Task SetInProgressAsync(int id);
     }
 }
